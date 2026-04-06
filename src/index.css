@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+:root {
+  --navy:    #0a1628;
+  --blue:    #1a3a6b;
+  --accent:  #e8b400;
+  --surface: #f4f6fb;
+  --border:  #d0d8ec;
+  --muted:   #6b7ea8;
+  --danger:  #dc2626;
+  --success: #16a34a;
+}
+
+* { box-sizing: border-box; }
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }

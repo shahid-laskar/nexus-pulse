@@ -63,6 +63,31 @@ const schema = z.object({
   throttle_bandwidth_up:   z.coerce.number().min(1).optional(),
   throttle_bandwidth_down: z.coerce.number().min(1).optional(),
   registration_approval_mode: z.enum(['manual', 'auto']),
+  
+  // Branch & Manager
+  branch_name:    z.string().optional(),
+  branch_code:    z.string().optional(),
+  manager_name:   z.string().optional(),
+  manager_phone:  z.string().optional(),
+  manager_email:  z.string().optional(),
+  registration_fields_config: z.any().optional(),
+}).superRefine((data, ctx) => {
+  if (data.portal_entry_mode === 'register_first') {
+    if (!data.manager_phone || data.manager_phone.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Required for Register First mode',
+        path: ['manager_phone'],
+      })
+    }
+    if (!data.manager_email || data.manager_email.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Required for Register First mode',
+        path: ['manager_email'],
+      })
+    }
+  }
 })
 
 type FormData = z.infer<typeof schema>
@@ -73,8 +98,8 @@ export function CustomerFormPage() {
   const { getError } = useApiError()
   const qc = useQueryClient()
 
-  const { register, handleSubmit, formState: { errors }, control, setValue, getValues } = useForm<FormData>({
-    resolver: zodResolver(schema),
+  const { register, handleSubmit, watch, formState: { errors }, control, setValue, getValues } = useForm<FormData>({
+    resolver: zodResolver(schema) as any,
     defaultValues: {
       total_users:             100,
       daily_data_limit_mb:     0,
@@ -92,8 +117,13 @@ export function CustomerFormPage() {
       enable_otp_login:        false,
       enable_volume_control:   true,
       portal_entry_mode:       'login',
-      device_approval_required: false,
       same_as_billing:         true,
+      branch_name:             '',
+      branch_code:             '',
+      manager_name:            '',
+      manager_phone:           '',
+      manager_email:           '',
+      registration_fields_config: {},
     },
   })
 
@@ -136,7 +166,7 @@ export function CustomerFormPage() {
     <div>
       <PageHeader title="Add Customer" subtitle="Saved as DRAFT — EB admin fills details" />
       <div className="p-8 max-w-3xl">
-        <form onSubmit={handleSubmit(d => create.mutate(d))}>
+        <form onSubmit={handleSubmit(d => create.mutate(d as any))}>
           <Card>
             <CardBody className="flex flex-col gap-4">
 
@@ -205,13 +235,7 @@ export function CustomerFormPage() {
                   ]}
                   {...register('registration_approval_mode')}
                 />
-                <Select label="Portal Entry Mode"
-                  options={[
-                    { value: 'login',          label: 'Login'            },
-                    { value: 'register_first', label: 'Register First'   },
-                  ]}
-                  {...register('portal_entry_mode')}
-                />
+
                 <Input label="Max Concurrent Sessions" type="number" hint="1–10" error={errors.max_concurrent_sessions?.message} {...register('max_concurrent_sessions')} />
                 <Input label="Max Data Limit (MB)"     type="number" hint="0 = unlimited" {...register('data_limit_mb')} />
               </div>
@@ -246,11 +270,29 @@ export function CustomerFormPage() {
                   <input type="checkbox" className="accent-[#004aad]" {...register('enable_volume_control')} />
                   Volume Control
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="accent-[#004aad]" {...register('device_approval_required')} />
-                  Device Approval Required
-                </label>
+                <Select
+                  label="Portal Login Mode"
+                  error={errors.portal_entry_mode?.message}
+                  {...register('portal_entry_mode')}
+                  options={[
+                    { label: 'Standard Login (General)', value: 'login' },
+                    { label: 'Register First (Approval)', value: 'register_first' }
+                  ]}
+                />
               </div>
+
+              {watch('portal_entry_mode') === 'register_first' && (
+                <div className="mt-4 p-4 border border-[#eab308]/20 bg-[#fefce8] rounded">
+                  <Section title="Branch & Manager Information" />
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <Input label="Branch Name" error={errors.branch_name?.message} {...register('branch_name')} />
+                    <Input label="Branch Code" error={errors.branch_code?.message} {...register('branch_code')} />
+                    <Input label="Manager Name" error={errors.manager_name?.message} {...register('manager_name')} />
+                    <Input label="Manager Phone" hint="Req. for Register First" error={errors.manager_phone?.message} {...register('manager_phone')} />
+                    <Input label="Manager Email" hint="Req. for Register First" error={errors.manager_email?.message} {...register('manager_email')} />
+                  </div>
+                </div>
+              )}
 
               {/* ── Branding ──────────────────────────────────────────── */}
               <Section title="Branding" />

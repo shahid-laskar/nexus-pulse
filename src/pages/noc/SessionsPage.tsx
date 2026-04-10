@@ -8,7 +8,49 @@ import { useApiError } from '@/hooks/useApiError'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
+import { useState } from 'react'
 import { PageLoader } from '@/components/ui/Spinner'
+
+function QoSActions({ customerId, ip }: { customerId: number, ip: string }) {
+  const [profileId, setProfileId] = useState('')
+  const { getError } = useApiError()
+
+  const provision = useMutation({
+    mutationFn: () => nocApi.provisionQoS(customerId, ip, Number(profileId)),
+    onSuccess: () => toast.success('QoS provisioned'),
+    onError: err => toast.error(getError(err))
+  })
+
+  const remove = useMutation({
+    mutationFn: () => nocApi.removeQoS(customerId, ip, Number(profileId)),
+    onSuccess: () => toast.success('QoS removed'),
+    onError: err => toast.error(getError(err))
+  })
+
+  const getStats = useMutation({
+    mutationFn: () => nocApi.getQoSStats(customerId, ip, Number(profileId)),
+    onSuccess: (data) => {
+       toast.success(`Stats: ${JSON.stringify(data.stats)}`, { duration: 8000 })
+    },
+    onError: err => toast.error(getError(err))
+  })
+
+  return (
+    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+      <span className="text-xs text-gray-500">QoS:</span>
+      <input 
+        type="number" 
+        placeholder="Profile ID" 
+        value={profileId} 
+        onChange={e => setProfileId(e.target.value)} 
+        className="form-input text-sm py-1 px-2 h-7 w-24"
+      />
+      <Button size="sm" disabled={!profileId} loading={provision.isPending} onClick={() => provision.mutate()}>Provision</Button>
+      <Button size="sm" variant="danger" disabled={!profileId} loading={remove.isPending} onClick={() => remove.mutate()}>Remove</Button>
+      <Button size="sm" variant="secondary" disabled={!profileId} loading={getStats.isPending} onClick={() => getStats.mutate()}>Stats</Button>
+    </div>
+  )
+}
 
 export function SessionsPage() {
   useRequireAuth(['SUPER_ADMIN', 'BA_NOC_ADMIN'])
@@ -83,16 +125,19 @@ export function SessionsPage() {
                       {s.timeout_remaining != null ? `${s.timeout_remaining}s` : '—'}
                     </Td>
                     <Td>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        loading={disconnect.isPending}
-                        onClick={() => {
-                          if (confirm(`Disconnect ${s.ip}?`)) disconnect.mutate(s.ip)
-                        }}
-                      >
-                        Disconnect
-                      </Button>
+                      <div>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          loading={disconnect.isPending}
+                          onClick={() => {
+                            if (confirm(`Disconnect ${s.ip}?`)) disconnect.mutate(s.ip)
+                          }}
+                        >
+                          Disconnect
+                        </Button>
+                        <QoSActions customerId={custId} ip={s.ip} />
+                      </div>
                     </Td>
                   </tr>
                 ))

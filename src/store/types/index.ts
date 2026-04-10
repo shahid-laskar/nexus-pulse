@@ -182,6 +182,7 @@ export interface CustomerRead {
   is_active:     boolean
   is_pushed:     boolean
   can_be_pushed: boolean
+  customer_type: string
   primary_color:   string
   secondary_color: string
   logo:            string | null
@@ -201,7 +202,12 @@ export interface CustomerRead {
   pushed_at:       string | null
   portal_entry_mode:          string
   enable_volume_control:      boolean
-  device_approval_required:   boolean
+  registration_fields_config: Record<string, any>
+  branch_name:                string
+  branch_code:                string
+  manager_name:               string
+  manager_phone:              string
+  manager_email:              string
   throttle_bandwidth_up:      number
   throttle_bandwidth_down:    number
   max_bandwidth:              string
@@ -210,6 +216,7 @@ export interface CustomerRead {
 export interface CustomerCreate {
   // Identity
   company_name:            string
+  customer_type?:          string
   gstin:                   string
   cin?:                    string
 
@@ -243,7 +250,15 @@ export interface CustomerCreate {
   otp_login_message?:        string
   enable_volume_control?:    boolean
   portal_entry_mode?:        string   // "login" | "register_first"
-  device_approval_required?: boolean
+  registration_fields_config?: Record<string, any>
+  
+  // Branch & Manager
+  branch_name?:              string
+  branch_code?:              string
+  manager_name?:             string
+  manager_phone?:            string
+  manager_email?:            string
+
   role_validity_days?:       Record<string, number>
 
   // Session / data limits
@@ -284,7 +299,13 @@ export interface CustomerUpdate {
   otp_login_message?:          string
   enable_volume_control?:      boolean
   portal_entry_mode?:          string
-  device_approval_required?:   boolean
+  customer_type?:              string
+  registration_fields_config?: Record<string, any>
+  branch_name?:                string
+  branch_code?:                string
+  manager_name?:               string
+  manager_phone?:              string
+  manager_email?:              string
   role_validity_days?:         Record<string, number>
   throttle_bandwidth_up?:      number
   throttle_bandwidth_down?:    number

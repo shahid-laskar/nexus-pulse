@@ -58,7 +58,6 @@ export function Sidebar() {
           <NavSection label="Master Data">
             {canManageCircles && <NavItem to="/circles"        icon="🌐" label="Circles" />}
             {canManageBAs     && <NavItem to="/business-areas" icon="🏢" label="Business Areas" />}
-            <NavItem to="/customers" icon="👥" label="Customers" />
           </NavSection>
         )}
 

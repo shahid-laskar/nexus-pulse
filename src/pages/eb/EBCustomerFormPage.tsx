@@ -60,7 +60,6 @@ const schema = z.object({
   enable_otp_login:         z.boolean().optional(),
   enable_volume_control:    z.boolean().optional(),
   portal_entry_mode:        z.enum(['login', 'register_first']).optional(),
-  device_approval_required: z.boolean().optional(),
 
   // Branch / Manager
   // branch_name  → required (no blank=True on model), defaults to company name
@@ -89,7 +88,6 @@ const schema = z.object({
 
 }).superRefine((data, ctx) => {
   const needsBranch = data.portal_entry_mode === 'register_first'
-    || data.device_approval_required
 
   if (needsBranch) {
     // Branch.clean(): at least one of manager_phone or manager_mobile required
@@ -151,7 +149,7 @@ export function EBCustomerFormPage() {
 
   const { register, handleSubmit, formState: { errors }, control, setValue, getValues } =
     useForm<FormData>({
-      resolver: zodResolver(schema),
+      resolver: zodResolver(schema) as any,
       defaultValues: {
         total_users:             100,
         daily_data_limit_mb:     0,
@@ -169,7 +167,6 @@ export function EBCustomerFormPage() {
         enable_otp_login:         false,
         enable_volume_control:    true,
         portal_entry_mode:        'login',
-        device_approval_required: false,
         same_as_billing:          true,
         // Branch defaults — branch_name falls back to company_name at submit time
         branch_code: '',
@@ -220,7 +217,6 @@ export function EBCustomerFormPage() {
         enable_otp_login:         existing.enable_otp_login ?? false,
         enable_volume_control:    existing.enable_volume_control,
         portal_entry_mode:        existing.portal_entry_mode as 'login' | 'register_first',
-        device_approval_required: existing.device_approval_required,
 
         // Branch — from nested branch object returned by serialize_customer
         branch_code: existing.branch?.branch_code ?? '',
@@ -234,9 +230,8 @@ export function EBCustomerFormPage() {
 
   const sameAsBilling   = useWatch({ control, name: 'same_as_billing' })
   const portalEntryMode = useWatch({ control, name: 'portal_entry_mode' })
-  const deviceApproval  = useWatch({ control, name: 'device_approval_required' })
 
-  const needsBranch = portalEntryMode === 'register_first' || !!deviceApproval
+  const needsBranch = portalEntryMode === 'register_first'
 
   function handleSameAsBilling(checked: boolean) {
     setValue('same_as_billing', checked)
@@ -357,13 +352,6 @@ export function EBCustomerFormPage() {
                   ]}
                   {...register('registration_approval_mode')}
                 />
-                <Select label="Portal Entry Mode"
-                  options={[
-                    { value: 'login',          label: 'Login'          },
-                    { value: 'register_first', label: 'Register First' },
-                  ]}
-                  {...register('portal_entry_mode')}
-                />
                 <Input label="Max Concurrent Sessions" type="number" hint="1–10"          error={errors.max_concurrent_sessions?.message} {...register('max_concurrent_sessions')} />
                 <Input label="Max Data Limit (MB)"     type="number" hint="0 = unlimited" {...register('data_limit_mb')} />
               </div>
@@ -398,23 +386,22 @@ export function EBCustomerFormPage() {
                   <input type="checkbox" className="accent-[#004aad]" {...register('enable_volume_control')} />
                   Volume Control
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="accent-[#004aad]" {...register('device_approval_required')} />
-                  Device Approval Required
-                </label>
+                <Select
+                  label="Portal Login Mode"
+                  error={errors.portal_entry_mode?.message}
+                  {...register('portal_entry_mode')}
+                  options={[
+                    { label: 'Standard Login (General)', value: 'login' },
+                    { label: 'Register First (Approval)', value: 'register_first' }
+                  ]}
+                />
               </div>
 
               {/* ── Branch / Manager ─────────────────────────────────── */}
               {needsBranch && (
-                <>
+                <div className="mt-4 p-4 border border-[#eab308]/20 bg-[#fefce8] rounded">
                   <Section title="Branch / Manager Details" />
-                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    Required because this customer uses
-                    {portalEntryMode === 'register_first' ? ' Register First mode' : ''}
-                    {deviceApproval ? ' Device Approval' : ''}.
-                    At least one of phone or mobile must be provided.
-                  </p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 mt-2">
                     {/* branch_name: no blank=True on model — defaults to company name if left empty */}
                     <Input
                       label="Branch Name"
@@ -455,7 +442,7 @@ export function EBCustomerFormPage() {
                       {...register('manager_email')}
                     />
                   </div>
-                </>
+                </div>
               )}
 
               {/* ── Branding ──────────────────────────────────────────── */}

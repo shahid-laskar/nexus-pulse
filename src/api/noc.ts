@@ -36,4 +36,19 @@ export const nocApi = {
     const res = await api.get(`/noc/customers/${customerId}/tc/`)
     return res.data
   },
+
+  provisionQoS: async (customerId: number, ip: string, profileId: number) => {
+    const res = await api.post(`/noc/customers/${customerId}/qos/`, { ip_address: ip, bandwidth_profile_id: profileId })
+    return res.data
+  },
+
+  removeQoS: async (customerId: number, ip: string, profileId: number) => {
+    const res = await api.delete(`/noc/customers/${customerId}/qos/`, { data: { ip_address: ip, profile_id: profileId } })
+    return res.data
+  },
+
+  getQoSStats: async (customerId: number, ip: string, profileId: number) => {
+    const res = await api.get(`/noc/customers/${customerId}/qos/${ip}/stats/`, { params: { profile_id: profileId } })
+    return res.data
+  },
 }

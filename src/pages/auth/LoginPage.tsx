@@ -49,7 +49,14 @@ export function LoginPage() {
       navigate(ROLE_REDIRECTS[role] ?? '/dashboard', { replace: true })
       toast.success(`Welcome back, ${res.user.first_name || res.user.username}`)
     } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Invalid username or password'
+      const status = err?.response?.status
+      const msg = status === 401
+        ? (err.response.data?.detail ?? 'Invalid username or password')
+        : status === 403
+          ? (err.response.data?.detail ?? 'You are not allowed to use this portal')
+          : err?.response
+            ? `Login failed (${status})`
+            : 'Unable to reach the server. Make sure the backend is running.'
       toast.error(msg)
     } finally {
       setLoading(false)

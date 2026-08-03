@@ -178,6 +178,7 @@ export interface CustomerRead {
   company_name:  string
  
   gstin:         string
+  cin?:          string | null
   status:        CustomerStatus
   is_active:     boolean
   is_pushed:     boolean
@@ -186,6 +187,8 @@ export interface CustomerRead {
   primary_color:   string
   secondary_color: string
   logo:            string | null
+  welcome_message?: string | null
+  terms_url?:       string | null
   contact_person:  string
   contact_email:   string
   contact_phone:   string
@@ -193,6 +196,11 @@ export interface CustomerRead {
   billing_state:   string
   total_users:     number
   daily_data_limit_mb: number
+  data_limit_mb?:         number | null
+  time_limit_minutes?:    number | null
+  session_timeout?:       number | null
+  idle_timeout?:          number | null
+  max_concurrent_sessions?: number | null
   registration_approval_mode: string
   captive_customer_slug: string
   captive_instance_id:   number | null
@@ -201,6 +209,8 @@ export interface CustomerRead {
   updated_at:      string
   pushed_at:       string | null
   portal_entry_mode:          string
+  enable_password_login?:     boolean
+  enable_otp_login?:          boolean
   enable_volume_control:      boolean
   registration_fields_config: Record<string, any>
   branch_name:                string
@@ -211,6 +221,14 @@ export interface CustomerRead {
   throttle_bandwidth_up:      number
   throttle_bandwidth_down:    number
   max_bandwidth:              string
+  branch?: {
+    branch_name?:    string | null
+    branch_code?:    string | null
+    manager_name?:   string | null
+    manager_phone?:  string | null
+    manager_mobile?: string | null
+    manager_email?:  string | null
+  } | null
 }
 
 export interface CustomerCreate {
@@ -365,5 +383,4 @@ export interface PaginationParams {
   skip?:  number
   limit?: number
 }
-
 

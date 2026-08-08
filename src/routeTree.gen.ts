@@ -10,33 +10,206 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AlertsRouteImport } from './routes/alerts'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as ChangesRouteImport } from './routes/changes'
+import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as DevicesRouteImport } from './routes/devices'
+import { Route as HandoverRouteImport } from './routes/handover'
+import { Route as IncidentsRouteImport } from './routes/incidents'
+import { Route as MaintenanceRouteImport } from './routes/maintenance'
+import { Route as MapRouteImport } from './routes/map'
+import { Route as ProvisioningRouteImport } from './routes/provisioning'
+import { Route as QosRouteImport } from './routes/qos'
+import { Route as SessionsRouteImport } from './routes/sessions'
+import { Route as TopologyRouteImport } from './routes/topology'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AlertsRoute = AlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangesRoute = ChangesRouteImport.update({
+  id: '/changes',
+  path: '/changes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersRoute = CustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevicesRoute = DevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HandoverRoute = HandoverRouteImport.update({
+  id: '/handover',
+  path: '/handover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IncidentsRoute = IncidentsRouteImport.update({
+  id: '/incidents',
+  path: '/incidents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaintenanceRoute = MaintenanceRouteImport.update({
+  id: '/maintenance',
+  path: '/maintenance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProvisioningRoute = ProvisioningRouteImport.update({
+  id: '/provisioning',
+  path: '/provisioning',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QosRoute = QosRouteImport.update({
+  id: '/qos',
+  path: '/qos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SessionsRoute = SessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TopologyRoute = TopologyRouteImport.update({
+  id: '/topology',
+  path: '/topology',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
+  '/analytics': typeof AnalyticsRoute
+  '/changes': typeof ChangesRoute
+  '/customers': typeof CustomersRoute
+  '/devices': typeof DevicesRoute
+  '/handover': typeof HandoverRoute
+  '/incidents': typeof IncidentsRoute
+  '/maintenance': typeof MaintenanceRoute
+  '/map': typeof MapRoute
+  '/provisioning': typeof ProvisioningRoute
+  '/qos': typeof QosRoute
+  '/sessions': typeof SessionsRoute
+  '/topology': typeof TopologyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
+  '/analytics': typeof AnalyticsRoute
+  '/changes': typeof ChangesRoute
+  '/customers': typeof CustomersRoute
+  '/devices': typeof DevicesRoute
+  '/handover': typeof HandoverRoute
+  '/incidents': typeof IncidentsRoute
+  '/maintenance': typeof MaintenanceRoute
+  '/map': typeof MapRoute
+  '/provisioning': typeof ProvisioningRoute
+  '/qos': typeof QosRoute
+  '/sessions': typeof SessionsRoute
+  '/topology': typeof TopologyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
+  '/analytics': typeof AnalyticsRoute
+  '/changes': typeof ChangesRoute
+  '/customers': typeof CustomersRoute
+  '/devices': typeof DevicesRoute
+  '/handover': typeof HandoverRoute
+  '/incidents': typeof IncidentsRoute
+  '/maintenance': typeof MaintenanceRoute
+  '/map': typeof MapRoute
+  '/provisioning': typeof ProvisioningRoute
+  '/qos': typeof QosRoute
+  '/sessions': typeof SessionsRoute
+  '/topology': typeof TopologyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/alerts'
+    | '/analytics'
+    | '/changes'
+    | '/customers'
+    | '/devices'
+    | '/handover'
+    | '/incidents'
+    | '/maintenance'
+    | '/map'
+    | '/provisioning'
+    | '/qos'
+    | '/sessions'
+    | '/topology'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/alerts'
+    | '/analytics'
+    | '/changes'
+    | '/customers'
+    | '/devices'
+    | '/handover'
+    | '/incidents'
+    | '/maintenance'
+    | '/map'
+    | '/provisioning'
+    | '/qos'
+    | '/sessions'
+    | '/topology'
+  id:
+    | '__root__'
+    | '/'
+    | '/alerts'
+    | '/analytics'
+    | '/changes'
+    | '/customers'
+    | '/devices'
+    | '/handover'
+    | '/incidents'
+    | '/maintenance'
+    | '/map'
+    | '/provisioning'
+    | '/qos'
+    | '/sessions'
+    | '/topology'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AlertsRoute: typeof AlertsRoute
+  AnalyticsRoute: typeof AnalyticsRoute
+  ChangesRoute: typeof ChangesRoute
+  CustomersRoute: typeof CustomersRoute
+  DevicesRoute: typeof DevicesRoute
+  HandoverRoute: typeof HandoverRoute
+  IncidentsRoute: typeof IncidentsRoute
+  MaintenanceRoute: typeof MaintenanceRoute
+  MapRoute: typeof MapRoute
+  ProvisioningRoute: typeof ProvisioningRoute
+  QosRoute: typeof QosRoute
+  SessionsRoute: typeof SessionsRoute
+  TopologyRoute: typeof TopologyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +221,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/alerts': {
+      id: '/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof AlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changes': {
+      id: '/changes'
+      path: '/changes'
+      fullPath: '/changes'
+      preLoaderRoute: typeof ChangesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers': {
+      id: '/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof CustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/devices': {
+      id: '/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/handover': {
+      id: '/handover'
+      path: '/handover'
+      fullPath: '/handover'
+      preLoaderRoute: typeof HandoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/incidents': {
+      id: '/incidents'
+      path: '/incidents'
+      fullPath: '/incidents'
+      preLoaderRoute: typeof IncidentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/maintenance': {
+      id: '/maintenance'
+      path: '/maintenance'
+      fullPath: '/maintenance'
+      preLoaderRoute: typeof MaintenanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/provisioning': {
+      id: '/provisioning'
+      path: '/provisioning'
+      fullPath: '/provisioning'
+      preLoaderRoute: typeof ProvisioningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/qos': {
+      id: '/qos'
+      path: '/qos'
+      fullPath: '/qos'
+      preLoaderRoute: typeof QosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sessions': {
+      id: '/sessions'
+      path: '/sessions'
+      fullPath: '/sessions'
+      preLoaderRoute: typeof SessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/topology': {
+      id: '/topology'
+      path: '/topology'
+      fullPath: '/topology'
+      preLoaderRoute: typeof TopologyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AlertsRoute: AlertsRoute,
+  AnalyticsRoute: AnalyticsRoute,
+  ChangesRoute: ChangesRoute,
+  CustomersRoute: CustomersRoute,
+  DevicesRoute: DevicesRoute,
+  HandoverRoute: HandoverRoute,
+  IncidentsRoute: IncidentsRoute,
+  MaintenanceRoute: MaintenanceRoute,
+  MapRoute: MapRoute,
+  ProvisioningRoute: ProvisioningRoute,
+  QosRoute: QosRoute,
+  SessionsRoute: SessionsRoute,
+  TopologyRoute: TopologyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

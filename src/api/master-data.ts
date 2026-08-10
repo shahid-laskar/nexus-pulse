@@ -1,9 +1,9 @@
 import { api } from '@/lib/axios'
 import type {
   CircleRead, CircleCreate, CircleUpdate,
-  BusinessAreaRead, BusinessAreaCreate, BusinessAreaUpdate,
+  BusinessAreaRead, BusinessAreaWithCircle, BusinessAreaCreate, BusinessAreaUpdate,
   CustomerRead, CustomerCreate, CustomerUpdate,
-  CustomerNetworkUpdate, CustomerListResponse,  
+  CustomerNetworkUpdate, CustomerListResponse, PaginationParams,
 } from '@/types'
 
 // ── Circles ────────────────────────────────────────────────────────────
@@ -28,8 +28,8 @@ export const circlesApi = {
 // ── Business Areas ─────────────────────────────────────────────────────
 
 export const businessAreasApi = {
-  list: async (): Promise<BusinessAreaRead[]> => {
-    const res = await api.get<BusinessAreaRead[]>('/admin/business-areas/')
+  list: async (): Promise<BusinessAreaWithCircle[]> => {
+    const res = await api.get<BusinessAreaWithCircle[]>('/admin/business-areas/')
     return res.data
   },
 
@@ -47,11 +47,7 @@ export const businessAreasApi = {
 // ── Customers ──────────────────────────────────────────────────────────
 
 export const customersApi = {
-  list: async (params?: {    
-    status?: string
-    skip?: number
-    limit?: number
-  }): Promise<CustomerListResponse> => {
+  list: async (params?: PaginationParams): Promise<CustomerListResponse> => {
     const res = await api.get<CustomerListResponse>('/admin/customers/', { params })
     return res.data
   },

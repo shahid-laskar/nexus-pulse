@@ -80,13 +80,6 @@ const schema = z.object({
         path: ['manager_phone'],
       })
     }
-    if (!data.manager_email || data.manager_email.trim() === '') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Required for Register First mode',
-        path: ['manager_email'],
-      })
-    }
   }
 })
 
@@ -157,7 +150,7 @@ export function CustomerFormPage() {
   })
 
   const Section = ({ title }: { title: string }) => (
-    <div className="text-xs font-bold uppercase tracking-wider text-[#6b7ea8] pb-1 border-b border-[#f0f4fc] mt-2">
+    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-hairline mt-2">
       {title}
     </div>
   )
@@ -197,8 +190,8 @@ export function CustomerFormPage() {
               </div>
 
               {/* ── Installation Address ──────────────────────────────── */}
-              <div className="flex items-center justify-between pb-1 border-b border-[#f0f4fc] mt-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#6b7ea8]">
+              <div className="flex items-center justify-between pb-1 border-b border-hairline mt-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Installation Address
                 </span>
                 <label className="flex items-center gap-2 text-xs text-[#3d4f6e] cursor-pointer select-none">
@@ -282,14 +275,14 @@ export function CustomerFormPage() {
               </div>
 
               {watch('portal_entry_mode') === 'register_first' && (
-                <div className="mt-4 p-4 border border-[#eab308]/20 bg-[#fefce8] rounded">
+                <div className="mt-4 p-4 border border-warn-soft bg-warn-soft/20 rounded">
                   <Section title="Branch & Manager Information" />
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <Input label="Branch Name" error={errors.branch_name?.message} {...register('branch_name')} />
                     <Input label="Branch Code" error={errors.branch_code?.message} {...register('branch_code')} />
                     <Input label="Manager Name" error={errors.manager_name?.message} {...register('manager_name')} />
                     <Input label="Manager Phone" hint="Req. for Register First" error={errors.manager_phone?.message} {...register('manager_phone')} />
-                    <Input label="Manager Email" hint="Req. for Register First" error={errors.manager_email?.message} {...register('manager_email')} />
+                    <Input label="Manager Email" hint="Optional (Supplemental OTP)" error={errors.manager_email?.message} {...register('manager_email')} />
                   </div>
                 </div>
               )}

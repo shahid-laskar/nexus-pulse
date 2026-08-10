@@ -3,11 +3,13 @@
  * - Base URL from env
  * - JWT Bearer token injected from auth store
  * - 401 → clears auth and redirects to login
- * - Request retry after token refresh
+ * - Request retry after token refresh (retried exactly once)
+ * - Error message normalization helper
  */
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import type { APIError } from '@/types'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
 
 export const api = axios.create({
   baseURL: `${API_BASE}/api/v1`,
@@ -17,7 +19,6 @@ export const api = axios.create({
 
 // ── Request interceptor: attach token ─────────────────────────────────
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Import here to avoid circular deps (store imports api, api imports store)
   const token = getStoredToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -93,6 +94,33 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+// ── Error normalization helpers ──────────────────────────────────────
+export function extractErrorMessage(error: unknown, fallback = 'An unexpected error occurred'): string {
+  if (!error) return fallback
+  if (axios.isAxiosError(error) && error.response?.data) {
+    const data = error.response.data as Record<string, unknown>
+    if (typeof data.detail === 'string') return data.detail
+    if (Array.isArray(data.detail)) {
+      return (data.detail as Array<{ msg?: string }>).map((err) => err.msg || JSON.stringify(err)).join(', ')
+    }
+    if (typeof data.error === 'string') return data.error
+    if (typeof data.message === 'string') return data.message
+    if (data.details && typeof data.details === 'object') {
+      return Object.entries(data.details as Record<string, unknown>)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('; ')
+    }
+    if (Array.isArray(data.errors)) {
+      return (data.errors as Array<{ field?: string; message?: string }>)
+        .map((e) => `${e.field ? e.field + ': ' : ''}${e.message || JSON.stringify(e)}`)
+        .join(', ')
+    }
+  }
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  return fallback
+}
 
 // ── Token helpers (localStorage) ──────────────────────────────────────
 const TOKEN_KEY   = 'bsnl_admin_token'

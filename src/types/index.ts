@@ -15,6 +15,15 @@ export interface LoginResponse extends TokenResponse {
   user: UserRead
 }
 
+export interface PasswordChangeRequest {
+  current_password: string
+  new_password:     string
+}
+
+export interface PasswordChangeResponse {
+  message: string
+}
+
 // ── Roles ─────────────────────────────────────────────────────────────
 
 export type RoleName =
@@ -154,7 +163,10 @@ export interface BusinessAreaRead {
   circle_id:  number
   is_active:  boolean
   created_at: string
-  circle:     CircleRead
+}
+
+export interface BusinessAreaWithCircle extends BusinessAreaRead {
+  circle: CircleRead
 }
 
 export interface BusinessAreaCreate {
@@ -170,20 +182,18 @@ export interface BusinessAreaUpdate {
 
 // ── Customers ─────────────────────────────────────────────────────────
 
-
 export type CustomerStatus = 'DRAFT' | 'READY' | 'PUSHED' | 'ACTIVE' | 'INACTIVE'
 
 export interface CustomerRead {
   id:            number
   company_name:  string
- 
+  customer_type: string
   gstin:         string
   cin?:          string | null
   status:        CustomerStatus
   is_active:     boolean
   is_pushed:     boolean
   can_be_pushed: boolean
-  customer_type: string
   primary_color:   string
   secondary_color: string
   logo:            string | null
@@ -192,8 +202,17 @@ export interface CustomerRead {
   contact_person:  string
   contact_email:   string
   contact_phone:   string
+  billing_address_line1?: string
+  billing_address_line2?: string
   billing_city:    string
   billing_state:   string
+  billing_pincode?: string
+  same_as_billing?: boolean
+  installation_address_line1?: string
+  installation_address_line2?: string
+  installation_city?: string
+  installation_state?: string
+  installation_pincode?: string
   total_users:     number
   daily_data_limit_mb: number
   data_limit_mb?:         number | null
@@ -204,6 +223,14 @@ export interface CustomerRead {
   registration_approval_mode: string
   captive_customer_slug: string
   captive_instance_id:   number | null
+  qinq_interface?:       string
+  wan_interface?:        string
+  svlan?:                number | null
+  cvlan?:                number | null
+  start_ip?:             string
+  end_ip?:               string
+  qos_mode?:             string
+  max_bandwidth:         string
   api_token:       string
   created_at:      string
   updated_at:      string
@@ -211,16 +238,14 @@ export interface CustomerRead {
   portal_entry_mode:          string
   enable_password_login?:     boolean
   enable_otp_login?:          boolean
+  otp_login_message?:         string | null
   enable_volume_control:      boolean
-  registration_fields_config: Record<string, any>
+  registration_fields_config: Record<string, unknown>
   branch_name:                string
   branch_code:                string
   manager_name:               string
   manager_phone:              string
   manager_email:              string
-  throttle_bandwidth_up:      number
-  throttle_bandwidth_down:    number
-  max_bandwidth:              string
   branch?: {
     branch_name?:    string | null
     branch_code?:    string | null
@@ -229,27 +254,23 @@ export interface CustomerRead {
     manager_mobile?: string | null
     manager_email?:  string | null
   } | null
+  role_validity_days?:        Record<string, number>
+  throttle_bandwidth_up:      number
+  throttle_bandwidth_down:    number
 }
 
 export interface CustomerCreate {
-  // Identity
   company_name:            string
   customer_type?:          string
   gstin:                   string
   cin?:                    string
-
-  // Branding
   primary_color?:          string
   secondary_color?:        string
   welcome_message?:        string
   terms_url?:              string
-
-  // Contact
   contact_person:          string
   contact_email:           string
   contact_phone:           string
-
-  // Billing address
   billing_address_line1:   string
   billing_address_line2?:  string
   billing_city:            string
@@ -261,25 +282,18 @@ export interface CustomerCreate {
   installation_city?:          string
   installation_state?:         string
   installation_pincode?:       string
-
-  // Auth / portal
   enable_password_login?:    boolean
   enable_otp_login?:         boolean
   otp_login_message?:        string
   enable_volume_control?:    boolean
-  portal_entry_mode?:        string   // "login" | "register_first"
-  registration_fields_config?: Record<string, any>
-  
-  // Branch & Manager
+  portal_entry_mode?:        string
+  registration_fields_config?: Record<string, unknown>
   branch_name?:              string
   branch_code?:              string
   manager_name?:             string
   manager_phone?:            string
   manager_email?:            string
-
   role_validity_days?:       Record<string, number>
-
-  // Session / data limits
   session_timeout?:         number
   idle_timeout?:            number
   max_concurrent_sessions?: number
@@ -291,6 +305,7 @@ export interface CustomerCreate {
   total_users?:             number
   registration_approval_mode?: string
 }
+
 export interface CustomerNetworkUpdate {
   captive_instance_id: number
   qinq_interface:      string
@@ -302,6 +317,7 @@ export interface CustomerNetworkUpdate {
   qos_mode?:           string
   max_bandwidth?:      string
 }
+
 export interface CustomerUpdate {
   company_name?:    string
   primary_color?:   string
@@ -318,7 +334,7 @@ export interface CustomerUpdate {
   enable_volume_control?:      boolean
   portal_entry_mode?:          string
   customer_type?:              string
-  registration_fields_config?: Record<string, any>
+  registration_fields_config?: Record<string, unknown>
   branch_name?:                string
   branch_code?:                string
   manager_name?:               string
@@ -341,6 +357,25 @@ export interface CustomerListResponse {
 
 // ── NOC ───────────────────────────────────────────────────────────────
 
+export interface InstanceRead {
+  id:          number
+  name:        string
+  host:        string
+  ssh_port?:   number
+  is_active?:  boolean
+  created_at?: string
+}
+
+export interface HealthResponse {
+  instance_id:   number
+  name?:         string
+  status:        string
+  latency_ms?:   number
+  wan_interface?: string
+  ssh_connected?: boolean
+  message?:      string
+}
+
 export interface OnboardResponse {
   customer_id:  number
   company_name: string
@@ -349,15 +384,90 @@ export interface OnboardResponse {
   message:      string
 }
 
-export interface HealthResponse {
-  instance_id:   number
-  ssh_connected: boolean
-  message?:      string
+export interface DeBoardResponse {
+  customer_id:  number
+  company_name: string
+  message:      string
 }
 
 export interface SessionRead {
   ip:                string
   timeout_remaining: number | null
+}
+
+export interface SessionListResponse {
+  customer_slug: string
+  session_count: number
+  sessions:      SessionRead[]
+}
+
+export interface FlushSessionsResponse {
+  message:       string
+  flushed_count?: number
+}
+
+export interface BandwidthProfileRead {
+  id:    number
+  name:  string
+  rate?: string
+  ceil?: string
+  [key: string]: unknown
+}
+
+export interface ProfilesListResponse {
+  profiles: BandwidthProfileRead[]
+  bandwidth_profiles?: BandwidthProfileRead[]
+}
+
+export interface QoSProvisionRequest {
+  ip_address:           string
+  bandwidth_profile_id: number
+}
+
+export interface QoSRemoveRequest {
+  ip_address: string
+  profile_id: number
+}
+
+export interface QoSStatsResponse {
+  ip_address: string
+  stats:      Record<string, unknown>
+}
+
+export interface TCStatusResponse {
+  instance_id: number
+  interface:   string
+  status:      Record<string, unknown>
+}
+
+export interface ConntrackRecord {
+  src_ip?:   string
+  dst_ip?:   string
+  src_port?: number
+  dst_port?: number
+  [key: string]: unknown
+}
+
+export interface ConntrackResponse {
+  instance_id:      number
+  customer_slug:    string
+  connection_count: number
+  connections:      ConntrackRecord[]
+}
+
+export interface NftablesStatusResponse {
+  instance_id:   number
+  customer_slug: string
+  status?:       string
+  details?:      Record<string, unknown>
+  [key: string]: unknown
+}
+
+export interface UpstreamUserRead {
+  username: string
+  email?:   string
+  phone?:   string
+  [key: string]: unknown
 }
 
 // ── EB ────────────────────────────────────────────────────────────────
@@ -370,17 +480,28 @@ export interface EBDashboardStats {
   inactive: number
 }
 
+export interface MarkReadyResponse {
+  customer_id:  number
+  company_name: string
+  status:       string
+  message:      string
+}
+
 // ── API errors ────────────────────────────────────────────────────────
 
 export interface APIError {
-  detail: string
-  errors?: { field: string; message: string }[]
+  detail?:  string
+  error?:   string
+  message?: string
+  details?: Record<string, unknown>
+  errors?:  { field: string; message: string }[]
 }
 
-// ── Pagination ────────────────────────────────────────────────────────
+// ── Pagination & Filtering ────────────────────────────────────────────
 
 export interface PaginationParams {
-  skip?:  number
-  limit?: number
+  skip?:   number
+  limit?:  number
+  status?: string
+  search?: string
 }
-

@@ -1,20 +1,22 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { customersApi } from '@/api/master-data'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useApiError } from '@/hooks/useApiError'
+import { extractErrorMessage } from '@/lib/axios'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/Badge'
 import { PageLoader } from '@/components/ui/Spinner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between py-2.5 border-b border-[#f0f4fc] last:border-0 text-sm">
-      <span className="text-[#6b7ea8]">{label}</span>
+    <div className="flex justify-between py-2.5 border-b border-hairline last:border-0 text-sm">
+      <span className="text-muted-foreground">{label}</span>
       <span className="font-medium text-right max-w-[60%] break-all">{value ?? '—'}</span>
     </div>
   )
@@ -23,26 +25,29 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 export function CustomerDetailPage() {
   useRequireAuth()
   const { id }     = useParams<{ id: string }>()
+  const customerId = Number(id)
   const { canManageCustomers, canAccessNOC } = useAuthStore()
-  const { getError } = useApiError()
   const qc = useQueryClient()
+  const [confirmReadyModal, setConfirmReadyModal] = useState(false)
 
   const { data: c, isLoading } = useQuery({
-    queryKey: ['customers', id],
-    queryFn:  () => customersApi.get(Number(id)),
+    queryKey: ['customers', customerId],
+    queryFn:  () => customersApi.get(customerId),
+    enabled:  Boolean(customerId),
   })
 
   const markReady = useMutation({
-    mutationFn: () => customersApi.markReady(Number(id)),
+    mutationFn: () => customersApi.markReady(customerId),
     onSuccess: () => {
       toast.success('Marked as READY — NOC team can now provision')
-      qc.invalidateQueries({ queryKey: ['customers', id] })
+      qc.invalidateQueries({ queryKey: ['customers', customerId] })
+      setConfirmReadyModal(false)
     },
-    onError: (err) => toast.error(getError(err)),
+    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to mark customer READY')),
   })
 
   if (isLoading) return <PageLoader />
-  if (!c) return <div className="p-8 text-[#6b7ea8]">Customer not found</div>
+  if (!c) return <div className="p-8 text-muted-foreground">Customer not found</div>
 
   return (
     <div>
@@ -51,9 +56,9 @@ export function CustomerDetailPage() {
         subtitle={c.gstin}
         actions={
           <div className="flex gap-2">
+            <Link to="/customers"><Button variant="secondary" size="sm">← Back</Button></Link>
             {canManageCustomers && c.status === 'DRAFT' && (
-              <Button size="sm" variant="secondary" loading={markReady.isPending}
-                onClick={() => { if (confirm('Mark READY for NOC?')) markReady.mutate() }}>
+              <Button size="sm" variant="secondary" onClick={() => setConfirmReadyModal(true)}>
                 ✅ Mark Ready
               </Button>
             )}
@@ -64,17 +69,16 @@ export function CustomerDetailPage() {
             )}
             {canAccessNOC && c.is_pushed && (
               <Link to={`/noc/customers/${id}/sessions`}>
-                <Button size="sm" variant="secondary">📡 Sessions</Button>
+                <Button size="sm" variant="secondary">📡 Sessions & Diagnostics</Button>
               </Link>
             )}
           </div>
         }
       />
 
-      <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+      <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl">
         <Card>
-          <CardHeader><h3 className="font-semibold text-[#1a2340]">Overview</h3></CardHeader>
+          <CardHeader><h3 className="font-semibold text-foreground">Overview</h3></CardHeader>
           <CardBody>
             <InfoRow label="Status"  value={<StatusBadge status={c.status} />} />
             <InfoRow label="Type"    value={c.customer_type} />
@@ -88,7 +92,7 @@ export function CustomerDetailPage() {
         </Card>
 
         <Card>
-          <CardHeader><h3 className="font-semibold text-[#1a2340]">Contact</h3></CardHeader>
+          <CardHeader><h3 className="font-semibold text-foreground">Contact</h3></CardHeader>
           <CardBody>
             <InfoRow label="Person" value={c.contact_person} />
             <InfoRow label="Email"  value={c.contact_email} />
@@ -99,7 +103,7 @@ export function CustomerDetailPage() {
         </Card>
 
         <Card>
-          <CardHeader><h3 className="font-semibold text-[#1a2340]">Portal Settings</h3></CardHeader>
+          <CardHeader><h3 className="font-semibold text-foreground">Portal Settings</h3></CardHeader>
           <CardBody>
             <InfoRow label="Approval Mode"    value={c.registration_approval_mode} />
             <InfoRow label="Daily Limit"      value={c.daily_data_limit_mb ? `${c.daily_data_limit_mb} MB` : 'Unlimited'} />
@@ -107,7 +111,7 @@ export function CustomerDetailPage() {
         </Card>
 
         <Card>
-          <CardHeader><h3 className="font-semibold text-[#1a2340]">Branding</h3></CardHeader>
+          <CardHeader><h3 className="font-semibold text-foreground">Branding</h3></CardHeader>
           <CardBody>
             <InfoRow label="Primary Color" value={
               <span className="flex items-center gap-2">
@@ -123,8 +127,18 @@ export function CustomerDetailPage() {
             } />
           </CardBody>
         </Card>
-
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmReadyModal}
+        title={`Mark ${c.company_name} as READY?`}
+        description="Are you sure you want to mark this customer as READY for NOC provisioning?"
+        confirmText="Mark Ready"
+        variant="primary"
+        isLoading={markReady.isPending}
+        onConfirm={() => markReady.mutate()}
+        onClose={() => setConfirmReadyModal(false)}
+      />
     </div>
   )
 }

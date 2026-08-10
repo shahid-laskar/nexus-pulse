@@ -71,16 +71,16 @@ export function UserEditPage() {
       />
       <div className="p-8 max-w-2xl">
         {user && (
-          <div className="flex items-center gap-3 mb-6 p-4 bg-white rounded-xl border border-[#d0d8ec]">
-            <div className="w-10 h-10 rounded-full bg-[#0a1628] flex items-center justify-center text-white font-bold">
+          <div className="flex items-center gap-3 mb-6 p-4 bg-surface rounded-xl border border-hairline">
+            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-white font-bold">
               {user.first_name[0]}{user.last_name[0]}
             </div>
             <div>
-              <div className="font-bold text-[#1a2340]">{user.full_name}</div>
+              <div className="font-bold text-foreground">{user.full_name}</div>
               <div className="flex items-center gap-2 mt-0.5">
                 <RoleBadge role={user.profile.role.name} />
                 {user.profile.circle && (
-                  <span className="text-xs text-[#6b7ea8]">
+                  <span className="text-xs text-muted-foreground">
                     {user.profile.circle.code}
                     {user.profile.business_area && ` / ${user.profile.business_area.code}`}
                   </span>

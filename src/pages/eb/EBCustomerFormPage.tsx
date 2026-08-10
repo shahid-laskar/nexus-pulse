@@ -101,13 +101,6 @@ const schema = z.object({
         message: 'At least one contact number (phone or mobile) is required',
       })
     }
-    // manager_email required for OTP delivery
-    if (!data.manager_email) {
-      ctx.addIssue({
-        path: ['manager_email'], code: 'custom',
-        message: 'Required for this configuration',
-      })
-    }
   }
 
   // Installation address required when not same_as_billing
@@ -270,7 +263,7 @@ export function EBCustomerFormPage() {
   if (isEdit && isLoading) return <PageLoader />
 
   const Section = ({ title }: { title: string }) => (
-    <div className="text-xs font-bold uppercase tracking-wider text-[#6b7ea8] pb-1 border-b border-[#f0f4fc] mt-2">
+    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-hairline mt-2">
       {title}
     </div>
   )
@@ -314,8 +307,8 @@ export function EBCustomerFormPage() {
               </div>
 
               {/* ── Installation Address ──────────────────────────────── */}
-              <div className="flex items-center justify-between pb-1 border-b border-[#f0f4fc] mt-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#6b7ea8]">
+              <div className="flex items-center justify-between pb-1 border-b border-hairline mt-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Installation Address
                 </span>
                 <label className="flex items-center gap-2 text-xs text-[#3d4f6e] cursor-pointer select-none">
@@ -399,7 +392,7 @@ export function EBCustomerFormPage() {
 
               {/* ── Branch / Manager ─────────────────────────────────── */}
               {needsBranch && (
-                <div className="mt-4 p-4 border border-[#eab308]/20 bg-[#fefce8] rounded">
+                <div className="mt-4 p-4 border border-warn-soft bg-warn-soft/20 rounded">
                   <Section title="Branch / Manager Details" />
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     {/* branch_name: no blank=True on model — defaults to company name if left empty */}
@@ -436,7 +429,8 @@ export function EBCustomerFormPage() {
                     />
                     {/* manager_email: EmailField blank=True */}
                     <Input
-                      label="Manager Email *"
+                      label="Manager Email"
+                      hint="Optional (Supplemental OTP)"
                       className="col-span-2"
                       error={errors.manager_email?.message}
                       {...register('manager_email')}

@@ -73,10 +73,10 @@ export function DashboardPage() {
             <Link
               key={item.to}
               to={item.to}
-              className="flex items-center gap-3 p-4 bg-white border border-[#d0d8ec] rounded-xl hover:border-[#1a3a6b] hover:bg-[#f4f8ff] transition-all"
+              className="flex items-center gap-3 p-4 bg-surface border border-hairline rounded-xl hover:border-primary/50 hover:bg-surface-2 transition-all"
             >
               <span className="text-2xl">{item.icon}</span>
-              <span className="text-sm font-semibold text-[#1a2340]">{item.label}</span>
+              <span className="text-[13px] font-semibold text-foreground">{item.label}</span>
             </Link>
           ))}
         </div>
@@ -84,10 +84,10 @@ export function DashboardPage() {
         {/* Recent customers table */}
         {canManageCustomers && (
           <>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-[#1a2340]">Recent Customers</h2>
-              <Link to="/customers" className="text-sm text-[#1a3a6b] font-semibold hover:underline">
-                View all →
+            <div className="flex items-center justify-between mb-3 mt-8">
+              <h2 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Recent Customers</h2>
+              <Link to="/customers" className="text-[12px] text-primary font-semibold hover:underline">
+                View all &rarr;
               </Link>
             </div>
             {loadingCust ? <PageLoader /> : (
@@ -104,21 +104,21 @@ export function DashboardPage() {
                   {recent.length === 0
                     ? <EmptyRow cols={4} message="No customers yet" />
                     : recent.map(c => (
-                      <tr key={c.id} className="hover:bg-[#fafbff]">
+                      <tr key={c.id} className="hover:bg-surface-2/50 transition-colors">
                         <Td>
-                          <Link to={`/customers/${c.id}`} className="font-semibold text-[#1a3a6b] hover:underline">
+                          <Link to={`/customers/${c.id}`} className="font-semibold text-foreground hover:underline">
                             {c.company_name}
                           </Link>
-                          <div className="text-xs text-[#6b7ea8]">{c.gstin}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">{c.gstin}</div>
                         </Td>
                         <Td><StatusBadge status={c.status} /></Td>
                         <Td>
                           {c.captive_customer_slug
-                            ? <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">{c.captive_customer_slug}</code>
-                            : <span className="text-[#6b7ea8] text-xs">not provisioned</span>
+                            ? <code className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded border border-hairline">{c.captive_customer_slug}</code>
+                            : <span className="text-muted-foreground text-[10px] uppercase tracking-wider">not provisioned</span>
                           }
                         </Td>
-                        <Td className="text-[#6b7ea8] text-xs">
+                        <Td className="text-muted-foreground text-[11px]">
                           {new Date(c.created_at).toLocaleDateString()}
                         </Td>
                       </tr>

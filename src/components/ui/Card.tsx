@@ -1,4 +1,4 @@
-import { clsx } from 'clsx'
+import { cn } from '@/lib/utils'
 import type { HTMLAttributes, ReactNode } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -8,7 +8,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export function Card({ children, className, ...props }: CardProps) {
   return (
     <div
-      className={clsx('bg-white rounded-xl border border-[#d0d8ec]', className)}
+      className={cn('bg-surface/80 backdrop-blur-sm rounded-xl border border-hairline shadow-sm overflow-hidden', className)}
       {...props}
     >
       {children}
@@ -18,12 +18,12 @@ export function Card({ children, className, ...props }: CardProps) {
 
 export function CardHeader({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={clsx('px-6 py-4 border-b border-[#f0f4fc]', className)}>
+    <div className={cn('px-6 py-4 border-b border-hairline bg-surface/50', className)}>
       {children}
     </div>
   )
 }
 
 export function CardBody({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={clsx('px-6 py-4', className)}>{children}</div>
+  return <div className={cn('px-6 py-4', className)}>{children}</div>
 }

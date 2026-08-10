@@ -1,4 +1,4 @@
-import { clsx } from 'clsx'
+import { cn } from '@/lib/utils'
 import { forwardRef, type SelectHTMLAttributes } from 'react'
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
@@ -12,21 +12,21 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, error, options, placeholder, className, id, ...props }, ref) => {
     const selectId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={selectId} className="text-xs font-bold uppercase tracking-wide text-[#6b7ea8]">
+          <label htmlFor={selectId} className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </label>
         )}
         <select
           ref={ref}
           id={selectId}
-          className={clsx(
-            'w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors',
-            'text-[#1a2340] bg-white',
+          className={cn(
+            'w-full px-3 py-2 text-[13px] rounded-md border outline-none transition-colors appearance-none',
+            'text-foreground bg-surface-2',
             error
-              ? 'border-red-400 focus:border-red-500'
-              : 'border-[#d0d8ec] focus:border-[#1a3a6b]',
+              ? 'border-critical focus:border-critical focus:ring-1 focus:ring-critical'
+              : 'border-hairline focus:border-primary/50 focus:ring-1 focus:ring-primary/50',
             className
           )}
           {...props}
@@ -36,7 +36,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && <p className="text-[11px] text-critical">{error}</p>}
       </div>
     )
   }

@@ -1,5 +1,5 @@
 import { api, setStoredToken, clearAuth } from '@/lib/axios'
-import type { LoginRequest, LoginResponse, TokenResponse } from '@/types'
+import type { LoginRequest, LoginResponse, UserRead, PasswordChangeRequest, PasswordChangeResponse } from '@/types'
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
@@ -9,21 +9,21 @@ export const authApi = {
   },
 
   logout: async (): Promise<void> => {
-    try { await api.post('/auth/logout') } catch { /* ignore */ }
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      /* ignore stateless logout failure */
+    }
     clearAuth()
   },
 
-  getMe: async () => {
-    const res = await api.get('/admin/users/me')
+  getMe: async (): Promise<UserRead> => {
+    const res = await api.get<UserRead>('/admin/users/me')
     return res.data
   },
 
-  changePassword: async (data: {
-    current_password: string
-    new_password: string
-    confirm_password: string
-  }) => {
-    const res = await api.put('/admin/users/me/password', data)
+  changePassword: async (data: PasswordChangeRequest): Promise<PasswordChangeResponse> => {
+    const res = await api.put<PasswordChangeResponse>('/admin/users/me/password', data)
     return res.data
   },
 }

@@ -1,4 +1,4 @@
-import { clsx } from 'clsx'
+import { cn } from '@/lib/utils'
 
 interface StatCardProps {
   label:      string
@@ -8,23 +8,23 @@ interface StatCardProps {
 }
 
 const colorMap = {
-  default: 'text-[#1a2340]',
-  green:   'text-green-700',
-  yellow:  'text-yellow-700',
-  red:     'text-red-700',
-  blue:    'text-blue-700',
+  default: 'text-foreground',
+  green:   'text-healthy',
+  yellow:  'text-warn',
+  red:     'text-critical',
+  blue:    'text-primary',
 }
 
 export function StatCard({ label, value, sub, color = 'default' }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-[#d0d8ec] p-6">
-      <p className="text-xs font-bold uppercase tracking-wider text-[#6b7ea8] mb-2">
+    <div className="bg-surface/80 backdrop-blur-sm rounded-xl border border-hairline p-5 shadow-sm">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
         {label}
       </p>
-      <p className={clsx('text-4xl font-bold leading-none', colorMap[color])}>
+      <p className={cn('text-3xl font-bold tracking-tight', colorMap[color])}>
         {value}
       </p>
-      {sub && <p className="text-xs text-[#6b7ea8] mt-1.5">{sub}</p>}
+      {sub && <p className="text-xs text-muted-foreground mt-1.5">{sub}</p>}
     </div>
   )
 }

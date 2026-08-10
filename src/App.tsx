@@ -13,16 +13,20 @@ import { DashboardPage }      from '@/pages/dashboard/DashboardPage'
 import { UsersListPage }      from '@/pages/users/UsersListPage'
 import { UserCreatePage }     from '@/pages/users/UserCreatePage'
 import { UserEditPage }       from '@/pages/users/UserEditPage'
+import { ProfilePage }        from '@/pages/users/ProfilePage'
 import { CirclesPage }        from '@/pages/master-data/CirclesPage'
 import { BusinessAreasPage }  from '@/pages/master-data/BusinessAreasPage'
 import { CustomersPage }      from '@/pages/master-data/CustomersPage'
 import { CustomerFormPage }   from '@/pages/master-data/CustomerFormPage'
 import { CustomerDetailPage } from '@/pages/master-data/CustomerDetailPage'
 import { NOCDashboardPage }   from '@/pages/noc/NOCDashboardPage'
-import { OnboardPage }        from '@/pages/noc/OnboardPage'
+import { NocAlarmsPage }      from '@/pages/noc/NocAlarmsPage'
 import { SessionsPage }       from '@/pages/noc/SessionsPage'
+import { AnalyticsPage }      from '@/pages/noc/AnalyticsPage'
+import { OnboardPage }        from '@/pages/noc/OnboardPage'
 import { EBDashboardPage }    from '@/pages/eb/EBDashboardPage'
 import { EBCustomerFormPage } from '@/pages/eb/EBCustomerFormPage'
+import { EBCustomerDetailPage } from '@/pages/eb/EBCustomerDetailPage'
 import { UnauthorizedPage }   from '@/pages/UnauthorizedPage'
 
 const qc = new QueryClient({
@@ -50,10 +54,11 @@ const router = createBrowserRouter([
       // Dashboard
       { path: 'dashboard', element: <DashboardPage /> },
 
-      // Users
+      // Users & Profile
       { path: 'users',          element: <UsersListPage /> },
       { path: 'users/create',   element: <UserCreatePage /> },
       { path: 'users/:id/edit', element: <UserEditPage /> },
+      { path: 'profile',        element: <ProfilePage /> },
 
       // Master data
       { path: 'circles',               element: <CirclesPage /> },
@@ -64,6 +69,9 @@ const router = createBrowserRouter([
 
       // NOC
       { path: 'noc',                              element: <NOCDashboardPage /> },
+      { path: 'noc/alerts',                       element: <NocAlarmsPage /> },
+      { path: 'noc/sessions',                     element: <SessionsPage /> },
+      { path: 'noc/analytics',                    element: <AnalyticsPage /> },
       { path: 'noc/customers/:id/onboard',        element: <OnboardPage /> },
       { path: 'noc/customers/:id/sessions',       element: <SessionsPage /> },
 
@@ -71,6 +79,7 @@ const router = createBrowserRouter([
       { path: 'eb',                       element: <EBDashboardPage /> },
       { path: 'eb/customers',             element: <EBDashboardPage /> },
       { path: 'eb/customers/create',      element: <EBCustomerFormPage /> },
+      { path: 'eb/customers/:id',         element: <EBCustomerDetailPage /> },
       { path: 'eb/customers/:id/edit',    element: <EBCustomerFormPage /> },
 
       // Catch-all

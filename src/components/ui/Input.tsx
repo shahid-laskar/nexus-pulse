@@ -1,4 +1,4 @@
-import { clsx } from 'clsx'
+import { cn } from '@/lib/utils'
 import { forwardRef, type InputHTMLAttributes } from 'react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -13,19 +13,19 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1">
         {label && (
-          <label htmlFor={inputId} className="text-xs font-bold uppercase tracking-wide text-[#6b7ea8]">
+          <label htmlFor={inputId} className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
             {label}
           </label>
         )}
         <input
           ref={ref}
           id={inputId}
-          className={clsx(
+          className={cn(
             'w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors',
-            'text-[#1a2340] placeholder:text-gray-400',
+            'text-foreground placeholder:text-muted-foreground',
             error
-              ? 'border-red-400 focus:border-red-500 bg-red-50'
-              : 'border-[#d0d8ec] focus:border-[#1a3a6b] bg-white',
+              ? 'border-critical focus:border-critical bg-critical/10'
+              : 'border-hairline focus:border-primary bg-surface',
             className
           )}
           {...props}

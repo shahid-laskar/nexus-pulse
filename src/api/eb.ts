@@ -1,7 +1,8 @@
 import { api } from '@/lib/axios'
 import type {
   CustomerRead, CustomerCreate, CustomerUpdate,
-  CustomerListResponse, EBDashboardStats,
+  CustomerListResponse, EBDashboardStats, MarkReadyResponse,
+  PaginationParams,
 } from '@/types'
 
 export const ebApi = {
@@ -10,7 +11,7 @@ export const ebApi = {
     return res.data
   },
 
-  list: async (params?: { status?: string; skip?: number; limit?: number }) => {
+  list: async (params?: PaginationParams): Promise<CustomerListResponse> => {
     const res = await api.get<CustomerListResponse>('/eb/customers/', { params })
     return res.data
   },
@@ -30,8 +31,8 @@ export const ebApi = {
     return res.data
   },
 
-  markReady: async (id: number) => {
-    const res = await api.post(`/eb/customers/${id}/ready/`)
+  markReady: async (id: number): Promise<MarkReadyResponse> => {
+    const res = await api.post<MarkReadyResponse>(`/eb/customers/${id}/ready/`)
     return res.data
   },
 

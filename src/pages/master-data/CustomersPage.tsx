@@ -4,37 +4,44 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { customersApi } from '@/api/master-data'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useApiError } from '@/hooks/useApiError'
+import { extractErrorMessage } from '@/lib/axios'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
 import { StatusBadge } from '@/components/ui/Badge'
 import { PageLoader } from '@/components/ui/Spinner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
-import type { CustomerStatus} from '@/types'
+import type { CustomerRead } from '@/types'
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: '',         label: 'All' },
-  { value: 'DRAFT',   label: 'Draft' },
-  { value: 'READY',   label: 'Ready' },
-  { value: 'PUSHED',  label: 'Pushed' },
-  { value: 'ACTIVE',  label: 'Active' },
-  { value: 'INACTIVE',label: 'Inactive' },
+  { value: 'DRAFT',    label: 'Draft' },
+  { value: 'READY',    label: 'Ready' },
+  { value: 'PUSHED',   label: 'Pushed' },
+  { value: 'ACTIVE',   label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
 ]
+
+const PAGE_SIZE = 25
 
 export function CustomersPage() {
   useRequireAuth(['SUPER_ADMIN', 'CIRCLE_ADMIN', 'BA_ADMIN', 'BA_NOC_ADMIN', 'BA_EB_ADMIN'])
   const { canManageCustomers, canAccessNOC } = useAuthStore()
-  const { getError } = useApiError()
-  const qc           = useQueryClient()
+  const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<string>('')
-  const [typeFilter,   setTypeFilter]   = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [page, setPage] = useState<number>(0)
+  const [selectedForReady, setSelectedForReady] = useState<CustomerRead | null>(null)
+
+  const skip = page * PAGE_SIZE
 
   const { data, isLoading } = useQuery({
-    queryKey: ['customers', statusFilter, typeFilter],
-    queryFn:  () => customersApi.list({
-      status:        statusFilter  || undefined,     
-      limit: 200,
+    queryKey: ['customers', statusFilter, skip, PAGE_SIZE],
+    queryFn: () => customersApi.list({
+      status: statusFilter || undefined,
+      skip,
+      limit: PAGE_SIZE,
     }),
   })
 
@@ -43,115 +50,152 @@ export function CustomersPage() {
     onSuccess: () => {
       toast.success('Customer marked as READY')
       qc.invalidateQueries({ queryKey: ['customers'] })
+      setSelectedForReady(null)
     },
-    onError: (err) => toast.error(getError(err)),
+    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to mark customer READY')),
   })
+
+  const filteredCustomers = (data?.customers || []).filter(c =>
+    !searchQuery ||
+    c.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.gstin.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.contact_person.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE)
 
   return (
     <div>
       <PageHeader
         title="Customers"
-        subtitle={`${data?.total ?? 0} customers`}
+        subtitle={`${data?.total ?? 0} total customers`}
         actions={
           canManageCustomers
             ? <Link to="/customers/create"><Button size="sm">➕ Add Customer</Button></Link>
             : undefined
         }
       />
-      <div className="p-8">
-        {/* Filters */}
-        <div className="flex gap-2 mb-5 flex-wrap">
-          {STATUS_FILTERS.map(f => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                statusFilter === f.value
-                  ? 'bg-[#0a1628] text-white border-[#0a1628]'
-                  : 'bg-white text-[#6b7ea8] border-[#d0d8ec] hover:border-[#1a3a6b]'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-          {/* <div className="w-px bg-[#d0d8ec] mx-1" />
-          {(['', 'WIFI', 'EB'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                typeFilter === t
-                  ? 'bg-[#0a1628] text-white border-[#0a1628]'
-                  : 'bg-white text-[#6b7ea8] border-[#d0d8ec] hover:border-[#1a3a6b]'
-              }`}
-            >
-              {t || 'All Types'}
-            </button>
-          ))} */}
+      <div className="p-8 space-y-5">
+        {/* Filters & Search */}
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <div className="flex gap-2 flex-wrap">
+            {STATUS_FILTERS.map(f => (
+              <button
+                key={f.value}
+                onClick={() => { setStatusFilter(f.value); setPage(0) }}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  statusFilter === f.value
+                    ? 'bg-primary text-primary-foreground text-white border-[#0a1628]'
+                    : 'bg-surface text-muted-foreground border-hairline hover:border-primary/50'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div>
+            <input
+              type="text"
+              placeholder="Search by name, GSTIN..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-64 focus:outline-none focus:border-[#004aad]"
+            />
+          </div>
         </div>
 
         {isLoading ? <PageLoader /> : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>Company</Th>                
-                <Th>Status</Th>
-                <Th>Slug</Th>
-                <Th>Actions</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {!data?.customers.length
-                ? <EmptyRow cols={5} message="No customers found" />
-                : data.customers.map(c => (
-                  <tr key={c.id} className="hover:bg-[#fafbff]">
-                    <Td>
-                      <Link to={`/customers/${c.id}`} className="font-semibold text-[#1a3a6b] hover:underline">
-                        {c.company_name}
-                      </Link>
-                      <div className="text-xs text-[#6b7ea8]">{c.gstin}</div>
-                    </Td>
-                    {/* <Td>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                        c.customer_type === 'EB' ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'
-                      }`}>{c.customer_type}</span>
-                    </Td> */}
-                    <Td><StatusBadge status={c.status} /></Td>
-                    <Td>
-                      {c.captive_customer_slug
-                        ? <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">{c.captive_customer_slug}</code>
-                        : <span className="text-[#6b7ea8] text-xs">—</span>
-                      }
-                    </Td>
-                    <Td>
-                      <div className="flex gap-2 flex-wrap">
-                        <Link to={`/customers/${c.id}`}><Button size="sm" variant="secondary">View</Button></Link>
-                        {canManageCustomers && c.status === 'DRAFT' && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            loading={markReady.isPending}
-                            onClick={() => {
-                              if (confirm('Mark as READY for NOC provisioning?')) markReady.mutate(c.id)
-                            }}
-                          >
-                            Mark Ready
-                          </Button>
-                        )}
-                        {canAccessNOC && c.can_be_pushed && (
-                          <Link to={`/noc/customers/${c.id}/onboard`}>
-                            <Button size="sm">Push to Router</Button>
-                          </Link>
-                        )}
-                      </div>
-                    </Td>
-                  </tr>
-                ))
-              }
-            </tbody>
-          </Table>
+          <>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Company & GSTIN</Th>
+                  <Th>Status</Th>
+                  <Th>Captive Slug</Th>
+                  <Th>Actions</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {!filteredCustomers.length
+                  ? <EmptyRow cols={4} message="No customers found" />
+                  : filteredCustomers.map(c => (
+                    <tr key={c.id} className="hover:bg-surface-2/50">
+                      <Td>
+                        <Link to={`/customers/${c.id}`} className="font-semibold text-primary hover:underline">
+                          {c.company_name}
+                        </Link>
+                        <div className="text-xs text-muted-foreground font-mono">{c.gstin}</div>
+                      </Td>
+                      <Td><StatusBadge status={c.status} /></Td>
+                      <Td>
+                        {c.captive_customer_slug
+                          ? <code className="text-xs bg-surface-2 text-foreground border border-hairline px-1.5 py-0.5 rounded font-mono">{c.captive_customer_slug}</code>
+                          : <span className="text-muted-foreground text-xs">—</span>
+                        }
+                      </Td>
+                      <Td>
+                        <div className="flex gap-2 flex-wrap">
+                          <Link to={`/customers/${c.id}`}><Button size="sm" variant="secondary">View</Button></Link>
+                          {canManageCustomers && c.status === 'DRAFT' && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setSelectedForReady(c)}
+                            >
+                              Mark Ready
+                            </Button>
+                          )}
+                          {canAccessNOC && c.can_be_pushed && (
+                            <Link to={`/noc/customers/${c.id}/onboard`}>
+                              <Button size="sm">Push to Router</Button>
+                            </Link>
+                          )}
+                        </div>
+                      </Td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </Table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center pt-2 text-xs text-slate-600">
+                <span>Page {page + 1} of {totalPages} ({data?.total} items)</span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={page === 0}
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                  >
+                    ← Previous
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage(p => p + 1)}
+                  >
+                    Next →
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(selectedForReady)}
+        title={`Mark ${selectedForReady?.company_name} as READY?`}
+        description="Are you sure you want to mark this customer as READY for NOC provisioning?"
+        confirmText="Mark Ready"
+        variant="primary"
+        isLoading={markReady.isPending}
+        onConfirm={() => selectedForReady && markReady.mutate(selectedForReady.id)}
+        onClose={() => setSelectedForReady(null)}
+      />
     </div>
   )
 }

@@ -1,22 +1,24 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { ebApi } from '@/api/eb'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { useApiError } from '@/hooks/useApiError'
+import { extractErrorMessage } from '@/lib/axios'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { Button } from '@/components/ui/Button'
 import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
 import { StatusBadge } from '@/components/ui/Badge'
 import { PageLoader } from '@/components/ui/Spinner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
 
 export function EBDashboardPage() {
   useRequireAuth(['SUPER_ADMIN', 'BA_ADMIN', 'BA_EB_ADMIN'])
   const { canManageCustomers } = useAuthStore()
-  const { getError } = useApiError()
   const qc = useQueryClient()
+  const [selectedCustomerForReady, setSelectedCustomerForReady] = useState<{ id: number; name: string } | null>(null)
 
   const { data: stats } = useQuery({
     queryKey: ['eb-stats'],
@@ -34,8 +36,9 @@ export function EBDashboardPage() {
       toast.success('Marked as READY — NOC can now provision')
       qc.invalidateQueries({ queryKey: ['eb-customers'] })
       qc.invalidateQueries({ queryKey: ['eb-stats'] })
+      setSelectedCustomerForReady(null)
     },
-    onError: (err) => toast.error(getError(err)),
+    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to mark customer READY')),
   })
 
   const customers = list?.customers ?? []
@@ -71,7 +74,7 @@ export function EBDashboardPage() {
 
         {/* Customers table */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-[#1a2340]">EB Customers</h2>
+          <h2 className="font-bold text-foreground">EB Customers</h2>
         </div>
 
         {isLoading ? <PageLoader /> : (
@@ -85,15 +88,15 @@ export function EBDashboardPage() {
               {!customers.length
                 ? <EmptyRow cols={5} message="No EB customers yet. Add one to get started." />
                 : customers.map(c => (
-                  <tr key={c.id} className="hover:bg-[#fafbff]">
+                  <tr key={c.id} className="hover:bg-surface-2/50">
                     <Td>
-                      <Link to={`/eb/customers/${c.id}`} className="font-semibold text-[#1a3a6b] hover:underline">
+                      <Link to={`/eb/customers/${c.id}`} className="font-semibold text-primary hover:underline">
                         {c.company_name}
                       </Link>
                     </Td>
                     <Td className="font-mono text-xs">{c.gstin}</Td>
                     <Td><StatusBadge status={c.status} /></Td>
-                    <Td className="text-[#6b7ea8] text-xs">{c.contact_person}<br />{c.contact_phone}</Td>
+                    <Td className="text-muted-foreground text-xs">{c.contact_person}<br />{c.contact_phone}</Td>
                     <Td>
                       <div className="flex gap-2 flex-wrap">
                         <Link to={`/eb/customers/${c.id}`}><Button size="sm" variant="secondary">View</Button></Link>
@@ -103,8 +106,7 @@ export function EBDashboardPage() {
                         {canManageCustomers && c.status === 'DRAFT' && (
                           <Button
                             size="sm"
-                            loading={markReady.isPending}
-                            onClick={() => { if (confirm('Mark as READY?')) markReady.mutate(c.id) }}
+                            onClick={() => setSelectedCustomerForReady({ id: c.id, name: c.company_name })}
                           >
                             Mark Ready
                           </Button>
@@ -117,6 +119,17 @@ export function EBDashboardPage() {
             </tbody>
           </Table>
         )}
+
+        <ConfirmDialog
+          isOpen={Boolean(selectedCustomerForReady)}
+          title="Mark EB Customer as READY?"
+          description={`Are you sure you want to mark '${selectedCustomerForReady?.name}' as READY for NOC provisioning?`}
+          confirmText="Mark Ready"
+          variant="primary"
+          isLoading={markReady.isPending}
+          onConfirm={() => selectedCustomerForReady && markReady.mutate(selectedCustomerForReady.id)}
+          onClose={() => setSelectedCustomerForReady(null)}
+        />
       </div>
     </div>
   )

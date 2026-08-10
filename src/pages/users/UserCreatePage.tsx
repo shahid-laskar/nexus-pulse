@@ -101,7 +101,7 @@ export function UserCreatePage() {
     return (
       <div>
         <PageHeader title="Create User" />
-        <div className="p-8 text-[#6b7ea8]">Your role cannot create users.</div>
+        <div className="p-8 text-muted-foreground">Your role cannot create users.</div>
       </div>
     )
   }
@@ -114,7 +114,7 @@ export function UserCreatePage() {
           <Card>
             <CardBody className="flex flex-col gap-5">
 
-              <div className="text-xs font-bold uppercase tracking-wider text-[#6b7ea8] pb-1 border-b border-[#f0f4fc]">
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-hairline">
                 Account
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -122,7 +122,7 @@ export function UserCreatePage() {
                 <Input label="Password *" type="password" error={errors.password?.message} {...register('password')} />
               </div>
 
-              <div className="text-xs font-bold uppercase tracking-wider text-[#6b7ea8] pb-1 border-b border-[#f0f4fc]">
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-hairline">
                 Personal Details
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -132,7 +132,7 @@ export function UserCreatePage() {
                 <Input label="Mobile"       error={errors.mobile?.message}     {...register('mobile')} />
               </div>
 
-              <div className="text-xs font-bold uppercase tracking-wider text-[#6b7ea8] pb-1 border-b border-[#f0f4fc]">
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-hairline">
                 Role &amp; Scope
               </div>
 

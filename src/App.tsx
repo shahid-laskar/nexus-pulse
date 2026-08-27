@@ -20,11 +20,20 @@ import { CustomersPage }      from '@/pages/master-data/CustomersPage'
 import { CustomerFormPage }   from '@/pages/master-data/CustomerFormPage'
 import { CustomerDetailPage } from '@/pages/master-data/CustomerDetailPage'
 import { NOCDashboardPage }   from '@/pages/noc/NOCDashboardPage'
+import { NOCOperationsPage }   from '@/pages/noc/NOCOperationsPage'
+import { NOCProvisioningPage } from '@/pages/noc/NOCProvisioningPage'
+import { RouterProposalsPage } from '@/pages/noc/RouterProposalsPage'
+import { RouterProposalFormPage } from '@/pages/noc/RouterProposalFormPage'
+import { RouterApprovalsPage } from '@/pages/admin/RouterApprovalsPage'
 import { NocAlarmsPage }      from '@/pages/noc/NocAlarmsPage'
+import { PendingRegistrationsPage } from '@/pages/noc/PendingRegistrationsPage'
 import { SessionsPage }       from '@/pages/noc/SessionsPage'
 import { AnalyticsPage }      from '@/pages/noc/AnalyticsPage'
+import { ChangeRequestsPage }  from '@/pages/noc/ChangeRequestsPage'
 import { OnboardPage }        from '@/pages/noc/OnboardPage'
+import { InstancesListPage }  from '@/pages/infrastructure/InstancesListPage'
 import { EBDashboardPage }    from '@/pages/eb/EBDashboardPage'
+import { EBCustomerListPage } from '@/pages/eb/EBCustomerListPage'
 import { EBCustomerFormPage } from '@/pages/eb/EBCustomerFormPage'
 import { EBCustomerDetailPage } from '@/pages/eb/EBCustomerDetailPage'
 import { UnauthorizedPage }   from '@/pages/UnauthorizedPage'
@@ -66,10 +75,20 @@ const router = createBrowserRouter([
       { path: 'customers',             element: <CustomersPage /> },
       { path: 'customers/create',      element: <CustomerFormPage /> },
       { path: 'customers/:id',         element: <CustomerDetailPage /> },
+      { path: 'admin/router-approvals', element: <RouterApprovalsPage /> },
 
       // NOC
-      { path: 'noc',                              element: <NOCDashboardPage /> },
+      { path: 'noc',                              element: <Navigate to="/noc/operations" replace /> },
+      { path: 'noc/operations',                   element: <NOCOperationsPage /> },
+      { path: 'noc/provisioning',                 element: <NOCProvisioningPage /> },
+      { path: 'noc/instances',                    element: <InstancesListPage /> },
+      { path: 'infrastructure/instances',         element: <InstancesListPage /> },
+      { path: 'noc/router-proposals',             element: <RouterProposalsPage /> },
+      { path: 'noc/router-proposals/new',         element: <RouterProposalFormPage /> },
+      { path: 'noc/router-proposals/:id/edit',    element: <RouterProposalFormPage /> },
       { path: 'noc/alerts',                       element: <NocAlarmsPage /> },
+      { path: 'noc/change-requests',              element: <ChangeRequestsPage /> },
+      { path: 'noc/registrations',                element: <PendingRegistrationsPage /> },
       { path: 'noc/sessions',                     element: <SessionsPage /> },
       { path: 'noc/analytics',                    element: <AnalyticsPage /> },
       { path: 'noc/customers/:id/onboard',        element: <OnboardPage /> },
@@ -77,7 +96,7 @@ const router = createBrowserRouter([
 
       // EB
       { path: 'eb',                       element: <EBDashboardPage /> },
-      { path: 'eb/customers',             element: <EBDashboardPage /> },
+      { path: 'eb/customers',             element: <EBCustomerListPage /> },
       { path: 'eb/customers/create',      element: <EBCustomerFormPage /> },
       { path: 'eb/customers/:id',         element: <EBCustomerDetailPage /> },
       { path: 'eb/customers/:id/edit',    element: <EBCustomerFormPage /> },

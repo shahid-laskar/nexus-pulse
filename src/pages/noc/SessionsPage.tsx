@@ -8,12 +8,14 @@ import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { extractErrorMessage } from '@/lib/axios'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
 import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import { PageLoader } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import type { BandwidthProfileRead, SessionRead, ConntrackRecord, CustomerRead } from '@/types'
+import type { BandwidthProfileRead, SessionRead, ConntrackRecord, CustomerRead, UpstreamUserRead } from '@/types'
 
 export function SessionsPage() {
   useRequireAuth(['SUPER_ADMIN', 'BA_NOC_ADMIN'])
@@ -77,9 +79,11 @@ function CustomerSelectorForSessions() {
   )
 }
 
+type TabType = 'sessions' | 'conntrack' | 'status' | 'auth' | 'users' | 'config'
+
 function CustomerSessionsView({ customerId }: { customerId: number }) {
   const qc = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'sessions' | 'conntrack' | 'status' | 'bandwidth'>('sessions')
+  const [activeTab, setActiveTab] = useState<TabType>('sessions')
 
   const [confirmFlushSessions, setConfirmFlushSessions] = useState(false)
   const [confirmFlushConntrack, setConfirmFlushConntrack] = useState(false)
@@ -191,7 +195,7 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
 
       <div className="p-8 space-y-6">
         {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-200 gap-2">
+        <div className="flex border-b border-slate-200 gap-2 flex-wrap">
           <button
             onClick={() => setActiveTab('sessions')}
             className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
@@ -217,12 +221,28 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
             🛡️ Router Firewall & TC Status
           </button>
           <button
-            onClick={() => setActiveTab('auth' as any)}
+            onClick={() => setActiveTab('auth')}
             className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === ('auth' as any) ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
+              activeTab === 'auth' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
             }`}
           >
             🚫 Auth Rejections
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+              activeTab === 'users' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
+            }`}
+          >
+            👥 Upstream Users
+          </button>
+          <button
+            onClick={() => setActiveTab('config')}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+              activeTab === 'config' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
+            }`}
+          >
+            ⚙️ Upstream Config
           </button>
         </div>
 
@@ -415,10 +435,10 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
         )}
 
         {/* Tab 4: Auth Rejections */}
-        {activeTab === ('auth' as any) && (
+        {activeTab === 'auth' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Recent Radius Authentication Failures</h3>
+              <h3 className="font-bold text-foreground">Recent Authentication Failures</h3>
             </div>
             {loadingAuth ? <PageLoader /> : (
               <Table>
@@ -451,8 +471,533 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
           </div>
         )}
 
+        {/* Tab 5: Upstream Captive Users */}
+        {activeTab === 'users' && (
+          <UpstreamUsersTab customerId={customerId} profiles={profiles} />
+        )}
+
+        {/* Tab 6: Upstream Router Config */}
+        {activeTab === 'config' && (
+          <UpstreamConfigTab customerId={customerId} customer={customer} />
+        )}
+
       </div>
 
+    </div>
+  )
+}
+
+function UpstreamUsersTab({
+  customerId,
+  profiles,
+}: {
+  customerId: number
+  profiles: BandwidthProfileRead[]
+}) {
+  const qc = useQueryClient()
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<UpstreamUserRead | null>(null)
+  const [deletingUsername, setDeletingUsername] = useState<string | null>(null)
+
+  const [createForm, setCreateForm] = useState({
+    username: '',
+    password: '',
+    full_name: '',
+    email: '',
+    phone: '',
+    profile: profiles.length > 0 ? profiles[0].name : '',
+    status: 'active',
+  })
+
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    profile: '',
+    status: 'active',
+    new_password: '',
+  })
+
+  const { data: usersData, isLoading, isError, error } = useQuery({
+    queryKey: ['noc-upstream-users', customerId],
+    queryFn: () => nocApi.listUpstreamUsers(customerId),
+  })
+
+  const users: UpstreamUserRead[] = Array.isArray(usersData)
+    ? usersData
+    : (usersData?.users || [])
+
+  const createMutation = useMutation({
+    mutationFn: (payload: any) => nocApi.createUpstreamUser(customerId, payload),
+    onSuccess: () => {
+      toast.success('Captive user created successfully')
+      qc.invalidateQueries({ queryKey: ['noc-upstream-users', customerId] })
+      setIsCreateOpen(false)
+      setCreateForm({
+        username: '',
+        password: '',
+        full_name: '',
+        email: '',
+        phone: '',
+        profile: profiles.length > 0 ? profiles[0].name : '',
+        status: 'active',
+      })
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to create captive user')),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ username, payload }: { username: string; payload: any }) =>
+      nocApi.updateUpstreamUser(customerId, username, payload),
+    onSuccess: () => {
+      toast.success('Captive user updated successfully')
+      qc.invalidateQueries({ queryKey: ['noc-upstream-users', customerId] })
+      setEditingUser(null)
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to update captive user')),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (username: string) => nocApi.deleteUpstreamUser(customerId, username),
+    onSuccess: () => {
+      toast.success(`User ${deletingUsername} deleted`)
+      qc.invalidateQueries({ queryKey: ['noc-upstream-users', customerId] })
+      setDeletingUsername(null)
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to delete captive user')),
+  })
+
+  const handleOpenEdit = (u: UpstreamUserRead) => {
+    setEditingUser(u)
+    setEditForm({
+      full_name: u.full_name || '',
+      email: u.email || '',
+      phone: u.phone || '',
+      profile: u.profile || (profiles.length > 0 ? profiles[0].name : ''),
+      status: u.status || 'active',
+      new_password: '',
+    })
+  }
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!createForm.username || !createForm.password) {
+      toast.error('Username and password are required')
+      return
+    }
+    createMutation.mutate(createForm)
+  }
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingUser) return
+    const payload: any = {
+      full_name: editForm.full_name,
+      email: editForm.email,
+      phone: editForm.phone,
+      profile: editForm.profile,
+      status: editForm.status,
+    }
+    if (editForm.new_password) {
+      payload.password = editForm.new_password
+    }
+    updateMutation.mutate({ username: editingUser.username, payload })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="font-bold text-foreground">Captive Portal User Administration</h3>
+          <p className="text-xs text-muted-foreground">Manage user credentials and accounts provisioned on this customer's captive portal router instance.</p>
+        </div>
+        <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+          ➕ Add Captive User
+        </Button>
+      </div>
+
+      {isLoading ? <PageLoader /> : isError ? (
+        <Card>
+          <CardBody className="text-sm text-red-600">
+            {extractErrorMessage(error, 'Failed to fetch captive users.')}
+          </CardBody>
+        </Card>
+      ) : (
+        <Table>
+          <thead>
+            <tr>
+              <Th>Username</Th>
+              <Th>Full Name / Email</Th>
+              <Th>Phone</Th>
+              <Th>Bandwidth Profile</Th>
+              <Th>Status</Th>
+              <Th>Usage</Th>
+              <Th>Actions</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {!users.length ? (
+              <EmptyRow cols={7} message="No captive portal users found for this customer." />
+            ) : (
+              users.map((u) => (
+                <tr key={u.username} className="hover:bg-slate-50 text-sm">
+                  <Td className="font-mono font-semibold text-foreground">{u.username}</Td>
+                  <Td>
+                    <div className="font-medium text-foreground">{u.full_name || '—'}</div>
+                    <div className="text-xs text-muted-foreground">{u.email || '—'}</div>
+                  </Td>
+                  <Td className="font-mono text-xs">{u.phone || '—'}</Td>
+                  <Td>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-surface-2 border border-hairline">
+                      {u.profile || 'Default'}
+                    </span>
+                  </Td>
+                  <Td>
+                    <Badge
+                      label={u.status || 'ACTIVE'}
+                      variant={u.status === 'active' || !u.status ? 'success' : 'warning'}
+                    />
+                  </Td>
+                  <Td className="text-xs text-muted-foreground font-mono">
+                    {u.usage?.data_used_mb != null ? `${u.usage.data_used_mb} MB` : '0 MB'}
+                  </Td>
+                  <Td>
+                    <div className="flex gap-2">
+                      <Button size="xs" variant="secondary" onClick={() => handleOpenEdit(u)}>
+                        Edit
+                      </Button>
+                      <Button size="xs" variant="danger" onClick={() => setDeletingUsername(u.username)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </Td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </Table>
+      )}
+
+      {/* Create Modal */}
+      {isCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-surface rounded-lg p-6 max-w-md w-full shadow-xl border border-hairline">
+            <h3 className="text-lg font-bold text-foreground mb-4">Create Captive Portal User</h3>
+            <form onSubmit={handleCreateSubmit} className="space-y-3">
+              <Input
+                label="Username"
+                value={createForm.username}
+                onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
+                required
+                placeholder="e.g. jdoe"
+              />
+              <Input
+                label="Password"
+                type="password"
+                value={createForm.password}
+                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                required
+                placeholder="Minimum 6 characters"
+              />
+              <Input
+                label="Full Name"
+                value={createForm.full_name}
+                onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })}
+                placeholder="e.g. John Doe"
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                placeholder="user@domain.com"
+              />
+              <Input
+                label="Phone"
+                value={createForm.phone}
+                onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                placeholder="10-digit mobile"
+              />
+              {profiles.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Bandwidth Profile
+                  </label>
+                  <select
+                    value={createForm.profile}
+                    onChange={(e) => setCreateForm({ ...createForm, profile: e.target.value })}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-hairline bg-surface text-foreground"
+                  >
+                    {profiles.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name} {p.rate ? `(${p.rate})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-3">
+                <Button variant="secondary" size="sm" onClick={() => setIsCreateOpen(false)} disabled={createMutation.isPending}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" isLoading={createMutation.isPending}>
+                  Create User
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-surface rounded-lg p-6 max-w-md w-full shadow-xl border border-hairline">
+            <h3 className="text-lg font-bold text-foreground mb-4">Edit User: {editingUser.username}</h3>
+            <form onSubmit={handleEditSubmit} className="space-y-3">
+              <Input
+                label="Full Name"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+              <Input
+                label="Phone"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+              <Input
+                label="Reset Password (optional)"
+                type="password"
+                placeholder="Leave blank to keep current password"
+                value={editForm.new_password}
+                onChange={(e) => setEditForm({ ...editForm, new_password: e.target.value })}
+              />
+              {profiles.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Bandwidth Profile
+                  </label>
+                  <select
+                    value={editForm.profile}
+                    onChange={(e) => setEditForm({ ...editForm, profile: e.target.value })}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-hairline bg-surface text-foreground"
+                  >
+                    {profiles.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name} {p.rate ? `(${p.rate})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-3">
+                <Button variant="secondary" size="sm" onClick={() => setEditingUser(null)} disabled={updateMutation.isPending}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" isLoading={updateMutation.isPending}>
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingUsername)}
+        title={`Delete User "${deletingUsername}"?`}
+        description={`Are you sure you want to permanently delete captive portal user "${deletingUsername}"? The user will immediately lose access.`}
+        confirmText="Delete User"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => deletingUsername && deleteMutation.mutate(deletingUsername)}
+        onClose={() => setDeletingUsername(null)}
+      />
+    </div>
+  )
+}
+
+function UpstreamConfigTab({
+  customerId,
+  customer,
+}: {
+  customerId: number
+  customer?: CustomerRead
+}) {
+  const qc = useQueryClient()
+  const [isEditing, setIsEditing] = useState(false)
+  const [configText, setConfigText] = useState('')
+  const [jsonError, setJsonError] = useState<string | null>(null)
+  const [confirmSave, setConfirmSave] = useState(false)
+
+  const { data: config, isLoading, isError, error } = useQuery({
+    queryKey: ['noc-upstream-customer', customerId],
+    queryFn: () => nocApi.getUpstreamCustomer(customerId),
+  })
+
+  const startEditing = () => {
+    setConfigText(JSON.stringify(config, null, 2))
+    setJsonError(null)
+    setIsEditing(true)
+  }
+
+  const cancelEditing = () => {
+    setIsEditing(false)
+    setJsonError(null)
+  }
+
+  const handlePreSave = () => {
+    try {
+      JSON.parse(configText)
+      setJsonError(null)
+      setConfirmSave(true)
+    } catch (e: any) {
+      setJsonError(`Invalid JSON: ${e.message}`)
+    }
+  }
+
+  const updateConfig = useMutation({
+    mutationFn: (payload: any) => nocApi.updateUpstreamCustomer(customerId, payload),
+    onSuccess: () => {
+      toast.success('Upstream customer configuration updated on router')
+      qc.invalidateQueries({ queryKey: ['noc-upstream-customer', customerId] })
+      setIsEditing(false)
+      setConfirmSave(false)
+    },
+    onError: (err) => {
+      toast.error(extractErrorMessage(err, 'Failed to update upstream configuration'))
+    },
+  })
+
+  const handleConfirmSave = () => {
+    try {
+      const payload = JSON.parse(configText)
+      updateConfig.mutate(payload)
+    } catch (e: any) {
+      setJsonError(`Invalid JSON: ${e.message}`)
+      setConfirmSave(false)
+    }
+  }
+
+  if (isLoading) return <PageLoader />
+  if (isError) {
+    return (
+      <Card>
+        <CardBody className="text-sm text-red-600">
+          {extractErrorMessage(error, 'Failed to fetch upstream configuration.')}
+        </CardBody>
+      </Card>
+    )
+  }
+
+  const customerObj = config?.customer || config
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="font-bold text-foreground">Upstream Customer Configuration (VyOS / Captive Portal)</h3>
+          <p className="text-xs text-muted-foreground">
+            Direct customer state stored on router instance #{customer?.captive_instance_id ?? '—'} (Slug: {customer?.captive_customer_slug ?? '—'})
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {!isEditing ? (
+            <Button size="sm" onClick={startEditing}>
+              ✏️ Edit Configuration
+            </Button>
+          ) : (
+            <>
+              <Button size="sm" variant="secondary" onClick={cancelEditing} disabled={updateConfig.isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" variant="danger" onClick={handlePreSave} isLoading={updateConfig.isPending}>
+                💾 Save to Router
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {isEditing ? (
+        <Card>
+          <CardHeader>Edit Raw JSON Configuration</CardHeader>
+          <CardBody className="space-y-3">
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded">
+              ⚠️ <strong>Warning:</strong> Updating this configuration writes directly to the router instance database. Ensure all fields (network, interface, limits) remain valid.
+            </div>
+            {jsonError && (
+              <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded font-mono">
+                {jsonError}
+              </div>
+            )}
+            <textarea
+              value={configText}
+              onChange={(e) => setConfigText(e.target.value)}
+              rows={22}
+              className="w-full font-mono text-xs p-3 rounded-lg border border-hairline bg-slate-900 text-green-400 outline-none focus:border-primary"
+              spellCheck={false}
+            />
+          </CardBody>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>Live Router Configuration Summary</CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono mb-4">
+                <div className="p-3 bg-surface-2 rounded border border-hairline">
+                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">Slug</span>
+                  <span className="font-semibold text-foreground">{customerObj?.slug || customerObj?.user_account || '—'}</span>
+                </div>
+                <div className="p-3 bg-surface-2 rounded border border-hairline">
+                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">WAN / QinQ Interface</span>
+                  <span className="font-semibold text-foreground">{customerObj?.network?.wan_interface || customerObj?.wan_interface || '—'} / {customerObj?.network?.qinq_interface || customerObj?.qinq_interface || '—'}</span>
+                </div>
+                <div className="p-3 bg-surface-2 rounded border border-hairline">
+                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">IP Range</span>
+                  <span className="font-semibold text-foreground">{customerObj?.network?.start_ip || customerObj?.start_ip || '—'} – {customerObj?.network?.end_ip || customerObj?.end_ip || '—'}</span>
+                </div>
+                <div className="p-3 bg-surface-2 rounded border border-hairline">
+                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">SVLAN / CVLAN</span>
+                  <span className="font-semibold text-foreground">{customerObj?.network?.svlan || customerObj?.svlan || '—'} / {customerObj?.network?.cvlan || customerObj?.cvlan || 'None'}</span>
+                </div>
+                <div className="p-3 bg-surface-2 rounded border border-hairline">
+                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">Session / Idle Timeout</span>
+                  <span className="font-semibold text-foreground">{customerObj?.session_defaults?.session_timeout || customerObj?.session_timeout || 0}s / {customerObj?.session_defaults?.idle_timeout || customerObj?.idle_timeout || 0}s</span>
+                </div>
+                <div className="p-3 bg-surface-2 rounded border border-hairline">
+                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">Total Users Limit</span>
+                  <span className="font-semibold text-foreground">{customerObj?.total_users ?? '—'}</span>
+                </div>
+              </div>
+
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 block">Full Raw JSON Payload</span>
+              <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-xs font-mono overflow-auto max-h-[450px]">
+                {JSON.stringify(config, null, 2)}
+              </pre>
+            </CardBody>
+          </Card>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={confirmSave}
+        title="Apply Upstream Configuration to Router?"
+        description="Are you sure you want to write these configuration changes directly to the VyOS router database? This may immediately impact active network routing and portal behavior for this customer."
+        confirmText="Apply to Router"
+        variant="danger"
+        isLoading={updateConfig.isPending}
+        onConfirm={handleConfirmSave}
+        onClose={() => setConfirmSave(false)}
+      />
     </div>
   )
 }

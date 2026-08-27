@@ -180,6 +180,45 @@ export interface BusinessAreaUpdate {
   is_active?: boolean
 }
 
+// ── VLAN Pools & Allocations ──────────────────────────────────────────
+
+export interface CircleVlanPool {
+  id:                number
+  circle_id:         number
+  svlan_range_start: number
+  svlan_range_end:   number
+  cvlan_range_start: number
+  cvlan_range_end:   number
+  created_at:        string
+}
+
+export interface CircleVlanPoolCreate {
+  svlan_range_start: number
+  svlan_range_end:   number
+  cvlan_range_start: number
+  cvlan_range_end:   number
+}
+
+export interface BASvlanAllocation {
+  id:                number
+  business_area_id:  number
+  circle_id:         number
+  svlan:             number
+  cvlan_range_start: number
+  cvlan_range_end:   number
+  is_exhausted:      boolean
+  notes:             string
+  created_at:        string
+}
+
+export interface BASvlanAllocationCreate {
+  svlan:             number
+  cvlan_range_start: number
+  cvlan_range_end:   number
+  notes?:            string
+}
+
+
 // ── Customers ─────────────────────────────────────────────────────────
 
 export type CustomerStatus = 'DRAFT' | 'READY' | 'PUSHED' | 'ACTIVE' | 'INACTIVE'
@@ -190,6 +229,10 @@ export interface CustomerRead {
   customer_type: string
   gstin:         string
   cin?:          string | null
+  user_account?: string
+  location?:     string
+  circle_id?:    number
+  business_area_id?: number
   status:        CustomerStatus
   is_active:     boolean
   is_pushed:     boolean
@@ -197,8 +240,11 @@ export interface CustomerRead {
   primary_color:   string
   secondary_color: string
   logo:            string | null
+  banner_image_url?: string | null
+  legal_doc_url?:    string | null
   welcome_message?: string | null
   terms_url?:       string | null
+  portal_domain?:   string
   contact_person:  string
   contact_email:   string
   contact_phone:   string
@@ -221,6 +267,7 @@ export interface CustomerRead {
   idle_timeout?:          number | null
   max_concurrent_sessions?: number | null
   registration_approval_mode: string
+  approval_otp_validity_minutes?: number
   captive_customer_slug: string
   captive_instance_id:   number | null
   qinq_interface?:       string
@@ -231,6 +278,8 @@ export interface CustomerRead {
   end_ip?:               string
   qos_mode?:             string
   max_bandwidth:         string
+  mac_binding?:          boolean
+  enable_mac_whitelist?: boolean
   api_token:       string
   created_at:      string
   updated_at:      string
@@ -264,10 +313,17 @@ export interface CustomerCreate {
   customer_type?:          string
   gstin:                   string
   cin?:                    string
+  user_account?:           string
+  location?:               string
+  circle_id?:              number
+  business_area_id?:       number
   primary_color?:          string
   secondary_color?:        string
   welcome_message?:        string
   terms_url?:              string
+  portal_domain?:          string
+  banner_image_url?:       string | null
+  legal_doc_url?:          string | null
   contact_person:          string
   contact_email:           string
   contact_phone:           string
@@ -286,6 +342,9 @@ export interface CustomerCreate {
   enable_otp_login?:         boolean
   otp_login_message?:        string
   enable_volume_control?:    boolean
+  mac_binding?:              boolean
+  enable_mac_whitelist?:     boolean
+  approval_otp_validity_minutes?: number
   portal_entry_mode?:        string
   registration_fields_config?: Record<string, unknown>
   branch_name?:              string
@@ -320,16 +379,40 @@ export interface CustomerNetworkUpdate {
 
 export interface CustomerUpdate {
   company_name?:    string
+  cin?:             string | null
+  user_account?:    string
+  location?:        string
+  circle_id?:       number
+  business_area_id?: number
   primary_color?:   string
   secondary_color?: string
   welcome_message?: string
   terms_url?:       string
+  portal_domain?:   string
+  banner_image_url?: string | null
+  legal_doc_url?:   string | null
   contact_person?:  string
   contact_email?:   string
   contact_phone?:   string
+  billing_address_line1?: string
+  billing_address_line2?: string
+  billing_city?:          string
+  billing_state?:         string
+  billing_pincode?:       string
+  same_as_billing?:       boolean
+  installation_address_line1?: string
+  installation_address_line2?: string
+  installation_city?:          string
+  installation_state?:         string
+  installation_pincode?:       string
   total_users?:     number
   daily_data_limit_mb?:        number
   registration_approval_mode?: string
+  approval_otp_validity_minutes?: number
+  enable_password_login?:      boolean
+  enable_otp_login?:           boolean
+  mac_binding?:                boolean
+  enable_mac_whitelist?:       boolean
   otp_login_message?:          string
   enable_volume_control?:      boolean
   portal_entry_mode?:          string
@@ -357,13 +440,52 @@ export interface CustomerListResponse {
 
 // ── NOC ───────────────────────────────────────────────────────────────
 
+export interface InstanceNetwork {
+  vyos_ip?: string
+  vyos_management_ip?: string
+  wan_interface?: string
+  svlan?: number
+  cvlan_start?: number
+  cvlan_end?: number
+  wan_max_bandwidth?: string
+}
+
+export interface InstanceAuth {
+  nas_identifier?: string
+  api_endpoint?: string
+  ssh_username?: string
+  ssh_port?: number
+  ssh_key_file?: string
+  has_api_key?: boolean
+  has_ssh_password?: boolean
+  has_radius_secret?: boolean
+  api_key?: string
+  ssh_password?: string
+  radius_secret?: string
+}
+
+export interface InstanceLocation {
+  ba?: string
+  circle?: string
+}
+
 export interface InstanceRead {
-  id:          number
-  name:        string
-  host:        string
-  ssh_port?:   number
-  is_active?:  boolean
+  id: number
+  instance_id?: number
+  identifier?: string
+  name: string
+  host?: string
+  database_name?: string
+  db_alias?: string
+  db_configured?: boolean
+  network?: InstanceNetwork
+  auth?: InstanceAuth
+  location?: InstanceLocation
+  is_active?: boolean
+  notes?: string
   created_at?: string
+  updated_at?: string
+  ssh_port?: number
 }
 
 export interface HealthResponse {
@@ -464,10 +586,53 @@ export interface NftablesStatusResponse {
 }
 
 export interface UpstreamUserRead {
-  username: string
-  email?:   string
-  phone?:   string
+  username:    string
+  full_name?:  string
+  email?:      string
+  phone?:      string
+  status?:     string
+  profile?:    string
+  limits?: {
+    session_timeout?:         number
+    idle_timeout?:            number
+    max_concurrent_sessions?: number
+    data_limit_mb?:           number
+    daily_data_limit_mb?:     number
+  }
+  usage?: {
+    data_used_mb?: number
+  }
+  valid_from?:  string | null
+  valid_until?: string | null
+  created_at?:  string
+  updated_at?:  string
+  last_login?:  string | null
   [key: string]: unknown
+}
+
+export interface PendingRegistrationItem {
+  id:                number
+  phone:             string
+  name?:             string | null
+  registration_data: Record<string, unknown>
+  status:            string
+  submitted_at?:     string | null
+  age_hours?:        number | null
+  ip_address?:       string | null
+  user_agent?:       string | null
+  customer_id?:      number | null
+  customer_name?:    string | null
+  customer_slug?:    string | null
+  [key: string]:     unknown
+}
+
+export interface PendingRegistrationsResponse {
+  success:          boolean
+  customer_id?:     number | null
+  customer_name?:   string | null
+  customer_slug?:   string | null
+  count:            number
+  pending_requests: PendingRegistrationItem[]
 }
 
 // ── EB ────────────────────────────────────────────────────────────────
@@ -504,4 +669,144 @@ export interface PaginationParams {
   limit?:  number
   status?: string
   search?: string
+}
+
+// ── Router Proposals ──────────────────────────────────────────────────
+
+export type RouterProposalStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'approved'
+  | 'rejected'
+  | 'provisioned'
+
+export interface RouterProposal {
+  id: number
+  identifier: string
+  proposed_instance_id: number
+  name: string
+  ba_id: number
+  circle_id: number
+  svlan_allocation_id?: number | null
+  vyos_ip: string
+  vyos_management_ip: string
+  nas_identifier: string
+  wan_interface: string
+  wan_max_bandwidth: string
+  cvlan_start?: number | null
+  cvlan_end?: number | null
+  api_endpoint?: string | null
+  ssh_username: string
+  ssh_port: number
+  has_api_key: boolean
+  has_ssh_password: boolean
+  status: RouterProposalStatus
+  notes: string
+  rejection_reason?: string | null
+  noc_return_notes?: string | null
+  proposed_by_id?: number | null
+  proposed_at: string
+  reviewed_by_id?: number | null
+  reviewed_at?: string | null
+  provisioned_at?: string | null
+  captive_instance_id?: number | null
+}
+
+export interface RouterProposalCreate {
+  identifier: string
+  proposed_instance_id: number
+  name: string
+  ba_id: number
+  circle_id: number
+  svlan_allocation_id?: number | null
+  vyos_ip: string
+  vyos_management_ip: string
+  nas_identifier: string
+  wan_interface?: string
+  wan_max_bandwidth?: string
+  cvlan_start?: number | null
+  cvlan_end?: number | null
+  api_endpoint?: string | null
+  api_key?: string | null
+  ssh_username?: string
+  ssh_password?: string | null
+  ssh_port?: number
+  notes?: string
+}
+
+export interface RouterProposalUpdate {
+  name?: string
+  ba_id?: number
+  circle_id?: number
+  svlan_allocation_id?: number | null
+  vyos_ip?: string
+  vyos_management_ip?: string
+  nas_identifier?: string
+  wan_interface?: string
+  wan_max_bandwidth?: string
+  cvlan_start?: number | null
+  cvlan_end?: number | null
+  api_endpoint?: string | null
+  api_key?: string | null
+  ssh_username?: string
+  ssh_password?: string | null
+  ssh_port?: number
+  notes?: string
+}
+
+export interface RouterProposalApprove {
+  captive_db_dsn: string
+  nat_db_dsn: string
+}
+
+export interface RouterProposalReject {
+  rejection_reason: string
+}
+
+export interface RouterProposalReturn {
+  noc_return_notes: string
+}
+
+// ── Change Requests ────────────────────────────────────────────────────
+
+export type ChangeRequestType =
+  | 'PORTAL_SETTINGS'
+  | 'SESSION_POLICY'
+  | 'BANDWIDTH_PROFILE'
+  | 'AUTH_OPTIONS'
+  | 'QOS'
+
+export type ChangeRequestStatus =
+  | 'PENDING'
+  | 'IN_REVIEW'
+  | 'NEEDS_INFO'
+  | 'APPROVED_APPLYING'
+  | 'APPLIED'
+  | 'REJECTED'
+
+export interface ChangeRequest {
+  id: number
+  customer_id: number
+  request_type: ChangeRequestType
+  payload: Record<string, any>
+  status: ChangeRequestStatus
+  eb_notes: string
+  noc_notes?: string | null
+  requested_by_id?: number | null
+  requested_at: string
+  reviewed_by_id?: number | null
+  reviewed_at?: string | null
+  applied_by_id?: number | null
+  applied_at?: string | null
+}
+
+export interface ChangeRequestCreate {
+  customer_id: number
+  request_type: ChangeRequestType
+  payload: Record<string, any>
+  eb_notes?: string
+}
+
+export interface ChangeRequestReview {
+  noc_notes: string
 }

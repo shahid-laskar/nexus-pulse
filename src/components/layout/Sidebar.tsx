@@ -5,7 +5,8 @@ import { authApi } from '@/api/auth'
 import toast from 'react-hot-toast'
 import { 
   Zap, LayoutDashboard, Globe, Building, Users, User, UserPlus, 
-  Siren, Wifi, LineChart, Briefcase, ClipboardList, Settings, LogOut 
+  Siren, Wifi, LineChart, Briefcase, ClipboardList, Settings, LogOut, UserCheck, Router,
+  ShieldCheck, Server, GitPullRequest, Activity, Layers
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +20,7 @@ export function Sidebar() {
   const navigate   = useNavigate()
   const auth       = useAuthStore()
   const {
-    user, scopeCircle, scopeBA,
+    user, isSuper, scopeCircle, scopeBA,
     canManageUsers, canManageCircles, canManageBAs,
     canManageCustomers, canAccessNOC, canAccessEB,
   } = auth
@@ -67,6 +68,7 @@ export function Sidebar() {
             {canManageCircles && <NavItem to="/circles"        icon={Globe} label="Circles" />}
             {canManageBAs     && <NavItem to="/business-areas" icon={Building} label="Business Areas" />}
             <NavItem to="/customers" icon={Users} label="Customers" />
+            {isSuper && <NavItem to="/admin/router-approvals" icon={ShieldCheck} label="Router Approvals" />}
           </NavSection>
         )}
 
@@ -79,10 +81,15 @@ export function Sidebar() {
 
         {canAccessNOC && (
           <NavSection label="NOC Operations">
-            <NavItem to="/noc"          icon={Zap} label="NOC Dashboard" />
-            <NavItem to="/noc/alerts"   icon={Siren} label="Fault Monitoring" />
-            <NavItem to="/noc/sessions" icon={Wifi} label="Sessions" />
-            <NavItem to="/noc/analytics" icon={LineChart} label="Analytics & Logs" />
+            <NavItem to="/noc/operations"       icon={Activity} label="Operations" />
+            <NavItem to="/noc/provisioning"     icon={Layers} label="Provisioning" />
+            <NavItem to="/noc/instances"        icon={Server} label="VyOS Instances" />
+            <NavItem to="/noc/router-proposals" icon={Router} label="Router Proposals" />
+            <NavItem to="/noc/change-requests"  icon={GitPullRequest} label="Change Requests" />
+            <NavItem to="/noc/alerts"           icon={Siren} label="Fault Monitoring" />
+            <NavItem to="/noc/registrations"    icon={UserCheck} label="Registrations" />
+            <NavItem to="/noc/sessions"         icon={Wifi} label="Sessions" />
+            <NavItem to="/noc/analytics"        icon={LineChart} label="Analytics & Logs" />
           </NavSection>
         )}
 

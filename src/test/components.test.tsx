@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
-import { StatusBadge } from '@/components/ui/Badge'
+import { StatusBadge, ChangeRequestStatusBadge, ChangeRequestTypeBadge } from '@/components/ui/Badge'
 
 describe('ConfirmDialog Component', () => {
   it('renders modal content when isOpen is true', () => {
@@ -71,3 +71,44 @@ describe('StatusBadge Component', () => {
     expect(screen.getByText('READY')).toBeInTheDocument()
   })
 })
+
+describe('ChangeRequest Badge Components', () => {
+  it('renders all ChangeRequestStatusBadge statuses correctly', () => {
+    const { rerender } = render(<ChangeRequestStatusBadge status="PENDING" />)
+    expect(screen.getByText('PENDING')).toBeInTheDocument()
+
+    rerender(<ChangeRequestStatusBadge status="IN_REVIEW" />)
+    expect(screen.getByText('IN REVIEW')).toBeInTheDocument()
+
+    rerender(<ChangeRequestStatusBadge status="NEEDS_INFO" />)
+    expect(screen.getByText('NEEDS INFO')).toBeInTheDocument()
+
+    rerender(<ChangeRequestStatusBadge status="APPROVED_APPLYING" />)
+    expect(screen.getByText('APPROVED APPLYING')).toBeInTheDocument()
+
+    rerender(<ChangeRequestStatusBadge status="APPLIED" />)
+    expect(screen.getByText('APPLIED')).toBeInTheDocument()
+
+    rerender(<ChangeRequestStatusBadge status="REJECTED" />)
+    expect(screen.getByText('REJECTED')).toBeInTheDocument()
+  })
+
+  it('renders all ChangeRequestTypeBadge types correctly', () => {
+    const { rerender } = render(<ChangeRequestTypeBadge type="PORTAL_SETTINGS" />)
+    expect(screen.getByText('Portal Settings')).toBeInTheDocument()
+
+    rerender(<ChangeRequestTypeBadge type="SESSION_POLICY" />)
+    expect(screen.getByText('Session Policy')).toBeInTheDocument()
+
+    rerender(<ChangeRequestTypeBadge type="BANDWIDTH_PROFILE" />)
+    expect(screen.getByText('Bandwidth Profiles')).toBeInTheDocument()
+
+    rerender(<ChangeRequestTypeBadge type="AUTH_OPTIONS" />)
+    expect(screen.getByText('Auth Options')).toBeInTheDocument()
+
+    rerender(<ChangeRequestTypeBadge type="QOS" />)
+    expect(screen.getByText('QoS & Bandwidth')).toBeInTheDocument()
+  })
+})
+
+

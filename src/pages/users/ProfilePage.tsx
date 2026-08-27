@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth'
 import { authApi } from '@/api/auth'
 import { extractErrorMessage } from '@/lib/axios'
@@ -6,15 +7,28 @@ import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { PageLoader } from '@/components/ui/Spinner'
 import toast from 'react-hot-toast'
 
 export function ProfilePage() {
-  const { user } = useAuthStore()
+  const { user: cachedUser, setUser } = useAuthStore()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const { data: user, isLoading, isError, error: queryError } = useQuery({
+    queryKey: ['users', 'me'],
+    queryFn: async () => {
+      const liveUser = await authApi.getMe()
+      if (setUser) {
+        setUser(liveUser)
+      }
+      return liveUser
+    },
+    initialData: cachedUser || undefined,
+  })
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,11 +66,33 @@ export function ProfilePage() {
     }
   }
 
+  if (isLoading && !user) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <PageHeader title="My Profile & Settings" description="Manage your account details and password." />
+        <PageLoader />
+      </div>
+    )
+  }
+
+  if (isError && !user) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <PageHeader title="My Profile & Settings" description="Manage your account details and password." />
+        <Card>
+          <CardBody className="text-sm text-red-600">
+            {extractErrorMessage(queryError, 'Failed to load profile details.')}
+          </CardBody>
+        </Card>
+      </div>
+    )
+  }
+
   if (!user) {
     return (
       <div>
         <PageHeader title="Profile Settings" />
-        <Card><CardBody>Loading profile...</CardBody></Card>
+        <Card><CardBody>No profile details found.</CardBody></Card>
       </div>
     )
   }

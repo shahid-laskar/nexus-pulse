@@ -3,7 +3,11 @@ import type {
   HealthResponse, OnboardResponse, DeBoardResponse,
   SessionListResponse, FlushSessionsResponse, TCStatusResponse,
   ProfilesListResponse, QoSStatsResponse, ConntrackResponse,
-  NftablesStatusResponse, InstanceRead,
+  NftablesStatusResponse, InstanceRead, UpstreamUserRead,
+  PendingRegistrationsResponse,
+  RouterProposal, RouterProposalCreate, RouterProposalUpdate,
+  RouterProposalApprove, RouterProposalReject, RouterProposalReturn,
+  ChangeRequest, ChangeRequestReview,
 } from '@/types'
 
 export const nocApi = {
@@ -13,7 +17,18 @@ export const nocApi = {
   },
 
   listInstances: async (): Promise<InstanceRead[]> => {
-    const res = await api.get<InstanceRead[]>('/noc/instances/')
+    const res = await api.get<any>('/noc/instances/')
+    const data = res.data
+    const list = Array.isArray(data) ? data : (data?.instances || [])
+    return list.map((inst: any) => ({
+      ...inst,
+      id: inst.instance_id ?? inst.id ?? 1,
+      instance_id: inst.instance_id ?? inst.id ?? 1,
+    }))
+  },
+
+  getInstance: async (instanceId: number): Promise<InstanceRead> => {
+    const res = await api.get<InstanceRead>(`/noc/instances/${instanceId}/`)
     return res.data
   },
 
@@ -96,33 +111,33 @@ export const nocApi = {
     return res.data
   },
 
-  getUpstreamCustomer: async (customerId: number): Promise<unknown> => {
-    const res = await api.get(`/noc/customers/${customerId}/upstream/`)
+  getUpstreamCustomer: async (customerId: number): Promise<any> => {
+    const res = await api.get<any>(`/noc/customers/${customerId}/upstream/`)
     return res.data
   },
 
-  updateUpstreamCustomer: async (customerId: number, payload: unknown): Promise<unknown> => {
-    const res = await api.put(`/noc/customers/${customerId}/upstream/`, payload)
+  updateUpstreamCustomer: async (customerId: number, payload: any): Promise<any> => {
+    const res = await api.put<any>(`/noc/customers/${customerId}/upstream/`, payload)
     return res.data
   },
 
-  listUpstreamUsers: async (customerId: number): Promise<unknown> => {
-    const res = await api.get(`/noc/customers/${customerId}/users/`)
+  listUpstreamUsers: async (customerId: number): Promise<{ users: UpstreamUserRead[] } | any> => {
+    const res = await api.get<{ users: UpstreamUserRead[] } | any>(`/noc/customers/${customerId}/users/`)
     return res.data
   },
 
-  createUpstreamUser: async (customerId: number, payload: unknown): Promise<unknown> => {
-    const res = await api.post(`/noc/customers/${customerId}/users/`, payload)
+  createUpstreamUser: async (customerId: number, payload: any): Promise<any> => {
+    const res = await api.post<any>(`/noc/customers/${customerId}/users/`, payload)
     return res.data
   },
 
-  updateUpstreamUser: async (customerId: number, username: string, payload: unknown): Promise<unknown> => {
-    const res = await api.put(`/noc/customers/${customerId}/users/${username}/`, payload)
+  updateUpstreamUser: async (customerId: number, username: string, payload: any): Promise<any> => {
+    const res = await api.put<any>(`/noc/customers/${customerId}/users/${username}/`, payload)
     return res.data
   },
 
-  deleteUpstreamUser: async (customerId: number, username: string): Promise<unknown> => {
-    const res = await api.delete(`/noc/customers/${customerId}/users/${username}/`)
+  deleteUpstreamUser: async (customerId: number, username: string): Promise<{ message: string }> => {
+    const res = await api.delete<{ message: string }>(`/noc/customers/${customerId}/users/${username}/`)
     return res.data
   },
 
@@ -143,6 +158,127 @@ export const nocApi = {
 
   getInstanceMetrics: async (instanceId: number): Promise<any> => {
     const res = await api.get(`/noc/instances/${instanceId}/metrics/`)
+    return res.data
+  },
+
+  listPendingRegistrations: async (customerId?: number): Promise<PendingRegistrationsResponse> => {
+    if (customerId) {
+      const res = await api.get<PendingRegistrationsResponse>(`/noc/customers/${customerId}/registrations/pending/`)
+      return res.data
+    }
+    const res = await api.get<PendingRegistrationsResponse>('/noc/registrations/pending/')
+    return res.data
+  },
+
+  approveRegistration: async (
+    customerId: number,
+    registrationId: number,
+    adminUsername?: string
+  ): Promise<any> => {
+    const res = await api.post(
+      `/noc/customers/${customerId}/registrations/${registrationId}/approve/`,
+      adminUsername ? { admin_username: adminUsername } : {}
+    )
+    return res.data
+  },
+
+  rejectRegistration: async (
+    customerId: number,
+    registrationId: number,
+    reason: string,
+    adminUsername?: string
+  ): Promise<any> => {
+    const res = await api.post(
+      `/noc/customers/${customerId}/registrations/${registrationId}/reject/`,
+      { reason, ...(adminUsername ? { admin_username: adminUsername } : {}) }
+    )
+    return res.data
+  },
+
+  getNextProposalInstanceId: async (): Promise<{ next_instance_id: number }> => {
+    const res = await api.get<{ next_instance_id: number }>('/noc/router-proposals/next-instance-id/')
+    return res.data
+  },
+
+  listRouterProposals: async (baId?: number): Promise<RouterProposal[]> => {
+    const res = await api.get<RouterProposal[]>('/noc/router-proposals/', {
+      params: baId ? { ba_id: baId } : undefined,
+    })
+    return res.data
+  },
+
+  getRouterProposal: async (id: number): Promise<RouterProposal> => {
+    const res = await api.get<RouterProposal>(`/noc/router-proposals/${id}/`)
+    return res.data
+  },
+
+  createRouterProposal: async (data: RouterProposalCreate): Promise<RouterProposal> => {
+    const res = await api.post<RouterProposal>('/noc/router-proposals/', data)
+    return res.data
+  },
+
+  updateRouterProposal: async (
+    id: number,
+    data: Partial<RouterProposalCreate>
+  ): Promise<RouterProposal> => {
+    const res = await api.put<RouterProposal>(`/noc/router-proposals/${id}/`, data)
+    return res.data
+  },
+
+  submitRouterProposal: async (id: number): Promise<RouterProposal> => {
+    const res = await api.post<RouterProposal>(`/noc/router-proposals/${id}/submit/`)
+    return res.data
+  },
+
+  approveRouterProposal: async (
+    id: number,
+    data: RouterProposalApprove
+  ): Promise<RouterProposal> => {
+    const res = await api.post<RouterProposal>(`/noc/router-proposals/${id}/approve/`, data)
+    return res.data
+  },
+
+  rejectRouterProposal: async (
+    id: number,
+    data: RouterProposalReject
+  ): Promise<RouterProposal> => {
+    const res = await api.post<RouterProposal>(`/noc/router-proposals/${id}/reject/`, data)
+    return res.data
+  },
+
+  returnRouterProposal: async (
+    id: number,
+    data: RouterProposalReturn
+  ): Promise<RouterProposal> => {
+    const res = await api.post<RouterProposal>(`/noc/router-proposals/${id}/return/`, data)
+    return res.data
+  },
+
+  // ── Change Requests ──────────────────────────────────────────────────
+
+  listChangeRequests: async (): Promise<ChangeRequest[]> => {
+    const res = await api.get<ChangeRequest[]>('/noc/change-requests/')
+    return res.data
+  },
+
+  approveChangeRequest: async (reqId: number): Promise<ChangeRequest> => {
+    const res = await api.post<ChangeRequest>(`/noc/change-requests/${reqId}/approve/`)
+    return res.data
+  },
+
+  rejectChangeRequest: async (
+    reqId: number,
+    data: ChangeRequestReview
+  ): Promise<ChangeRequest> => {
+    const res = await api.post<ChangeRequest>(`/noc/change-requests/${reqId}/reject/`, data)
+    return res.data
+  },
+
+  returnChangeRequest: async (
+    reqId: number,
+    data: ChangeRequestReview
+  ): Promise<ChangeRequest> => {
+    const res = await api.post<ChangeRequest>(`/noc/change-requests/${reqId}/return/`, data)
     return res.data
   },
 }

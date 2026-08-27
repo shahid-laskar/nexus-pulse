@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import type { CustomerStatus, RoleName } from '@/types'
+import type { CustomerStatus, RoleName, ChangeRequestStatus, ChangeRequestType } from '@/types'
 
 const ROLE_COLORS: Record<RoleName, string> = {
   SUPER_ADMIN:  'bg-chart-1/10 text-chart-1',
@@ -16,6 +16,23 @@ const STATUS_COLORS: Record<CustomerStatus, string> = {
   PUSHED:   'bg-warn-soft text-warn',
   ACTIVE:   'bg-healthy-soft text-healthy',
   INACTIVE: 'bg-critical-soft text-critical',
+}
+
+const CR_STATUS_COLORS: Record<ChangeRequestStatus, string> = {
+  PENDING:           'bg-amber-500/10 text-amber-600 border border-amber-500/20',
+  IN_REVIEW:         'bg-blue-500/10 text-blue-600 border border-blue-500/20',
+  NEEDS_INFO:        'bg-purple-500/10 text-purple-600 border border-purple-500/20',
+  APPROVED_APPLYING: 'bg-cyan-500/10 text-cyan-600 border border-cyan-500/20 animate-pulse',
+  APPLIED:           'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
+  REJECTED:          'bg-rose-500/10 text-rose-600 border border-rose-500/20',
+}
+
+const CR_TYPE_LABELS: Record<ChangeRequestType, string> = {
+  PORTAL_SETTINGS:   'Portal Settings',
+  SESSION_POLICY:    'Session Policy',
+  BANDWIDTH_PROFILE: 'Bandwidth Profiles',
+  AUTH_OPTIONS:      'Auth Options',
+  QOS:               'QoS & Bandwidth',
 }
 
 interface BadgeProps {
@@ -66,3 +83,24 @@ export function StatusBadge({ status }: { status: CustomerStatus }) {
     </span>
   )
 }
+
+export function ChangeRequestStatusBadge({ status }: { status: ChangeRequestStatus }) {
+  const label = status.replace(/_/g, ' ')
+  return (
+    <span className={cn(
+      'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium uppercase tracking-wider',
+      CR_STATUS_COLORS[status] || 'bg-surface-2 text-muted-foreground'
+    )}>
+      {label}
+    </span>
+  )
+}
+
+export function ChangeRequestTypeBadge({ type }: { type: ChangeRequestType }) {
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+      {CR_TYPE_LABELS[type] || type}
+    </span>
+  )
+}
+

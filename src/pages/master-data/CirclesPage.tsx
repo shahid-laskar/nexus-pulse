@@ -1,51 +1,274 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
-import { circlesApi } from '@/api/master-data'
+import { circlesApi, vlanPoolsApi } from '@/api/master-data'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useAuthStore } from '@/store/auth'
 import { extractErrorMessage } from '@/lib/axios'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
-import { PageLoader } from '@/components/ui/Spinner'
-import type { CircleRead } from '@/types'
+import { PageLoader, Spinner } from '@/components/ui/Spinner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import type { CircleRead, CircleVlanPool } from '@/types'
 
-const schema = z.object({
-  name: z.string().min(2, 'Min 2 chars'),
-  code: z.string().min(2, 'Min 2 chars').max(20),
-})
-type FormData = z.infer<typeof schema>
+// ── Add Pool Schema ───────────────────────────────────────────────────
+
+const poolSchema = z
+  .object({
+    svlan_range_start: z.coerce.number().min(1, 'Min 1').max(4094, 'Max 4094'),
+    svlan_range_end:   z.coerce.number().min(1, 'Min 1').max(4094, 'Max 4094'),
+    cvlan_range_start: z.coerce.number().min(1, 'Min 1').max(4094, 'Max 4094'),
+    cvlan_range_end:   z.coerce.number().min(1, 'Min 1').max(4094, 'Max 4094'),
+  })
+  .refine(data => data.svlan_range_start <= data.svlan_range_end, {
+    message: 'SVLAN start must be <= SVLAN end',
+    path: ['svlan_range_end'],
+  })
+  .refine(data => data.cvlan_range_start <= data.cvlan_range_end, {
+    message: 'CVLAN start must be <= CVLAN end',
+    path: ['cvlan_range_end'],
+  })
+
+type PoolFormData = z.infer<typeof poolSchema>
+
+// ── Modal for Adding Pool ─────────────────────────────────────────────
+
+function AddPoolModal({
+  circle,
+  isOpen,
+  onClose,
+}: {
+  circle: CircleRead
+  isOpen: boolean
+  onClose: () => void
+}) {
+  const qc = useQueryClient()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<PoolFormData>({
+    resolver: zodResolver(poolSchema) as any,
+  })
+
+  const addPool = useMutation({
+    mutationFn: (data: PoolFormData) => vlanPoolsApi.create(circle.id, data),
+    onSuccess: () => {
+      toast.success('VLAN pool added')
+      qc.invalidateQueries({ queryKey: ['vlan-pools', circle.id] })
+      reset()
+      onClose()
+    },
+    onError: err => toast.error(extractErrorMessage(err, 'Failed to add VLAN pool')),
+  })
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="p-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-1">
+            Add VLAN Pool — {circle.name} ({circle.code})
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Configure allowed SVLAN and CVLAN boundaries for this circle.
+          </p>
+
+          <form onSubmit={handleSubmit(d => addPool.mutate(d))} className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="SVLAN Start *"
+                type="number"
+                min={1}
+                max={4094}
+                placeholder="100"
+                error={errors.svlan_range_start?.message}
+                {...register('svlan_range_start')}
+              />
+              <Input
+                label="SVLAN End *"
+                type="number"
+                min={1}
+                max={4094}
+                placeholder="500"
+                error={errors.svlan_range_end?.message}
+                {...register('svlan_range_end')}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="CVLAN Start *"
+                type="number"
+                min={1}
+                max={4094}
+                placeholder="10"
+                error={errors.cvlan_range_start?.message}
+                {...register('cvlan_range_start')}
+              />
+              <Input
+                label="CVLAN End *"
+                type="number"
+                min={1}
+                max={4094}
+                placeholder="4000"
+                error={errors.cvlan_range_end?.message}
+                {...register('cvlan_range_end')}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={addPool.isPending}>
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" loading={addPool.isPending}>
+                Add Pool
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── VLAN Pools Expanded Sub-section ───────────────────────────────────
+
+function CircleVlanPoolsSection({ circle }: { circle: CircleRead }) {
+  const qc = useQueryClient()
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [poolToDelete, setPoolToDelete] = useState<CircleVlanPool | null>(null)
+
+  const { data: pools, isLoading } = useQuery({
+    queryKey: ['vlan-pools', circle.id],
+    queryFn: () => vlanPoolsApi.list(circle.id),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (poolId: number) => vlanPoolsApi.delete(circle.id, poolId),
+    onSuccess: () => {
+      toast.success('VLAN pool deleted')
+      qc.invalidateQueries({ queryKey: ['vlan-pools', circle.id] })
+      setPoolToDelete(null)
+    },
+    onError: err => toast.error(extractErrorMessage(err, 'Failed to delete VLAN pool')),
+  })
+
+  return (
+    <div className="p-4 bg-surface-1/40 border-t border-hairline rounded-b-md">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+            VLAN Pools for {circle.name} ({circle.code})
+          </span>
+          <span className="text-xs text-muted-foreground">({pools?.length || 0} pools)</span>
+        </div>
+        <Button size="xs" variant="primary" onClick={() => setShowAddModal(true)}>
+          ➕ Add Pool
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-4">
+          <Spinner className="h-5 w-5" />
+        </div>
+      ) : !pools?.length ? (
+        <div className="text-xs text-muted-foreground italic py-2">
+          No VLAN pools configured for this circle yet. Click &quot;Add Pool&quot; to define ranges.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left border border-hairline rounded">
+            <thead className="bg-surface-2">
+              <tr>
+                <th className="p-2 border-b border-hairline font-semibold">SVLAN Range</th>
+                <th className="p-2 border-b border-hairline font-semibold">CVLAN Range</th>
+                <th className="p-2 border-b border-hairline font-semibold">Created</th>
+                <th className="p-2 border-b border-hairline font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pools.map(p => (
+                <tr key={p.id} className="border-b border-hairline hover:bg-surface-2/40">
+                  <td className="p-2 font-mono font-medium">
+                    {p.svlan_range_start} – {p.svlan_range_end}
+                  </td>
+                  <td className="p-2 font-mono text-muted-foreground">
+                    {p.cvlan_range_start} – {p.cvlan_range_end}
+                  </td>
+                  <td className="p-2 text-muted-foreground">
+                    {new Date(p.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="p-2 text-right">
+                    <Button
+                      size="xs"
+                      variant="danger"
+                      onClick={() => setPoolToDelete(p)}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <AddPoolModal
+        circle={circle}
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!poolToDelete}
+        title="Delete VLAN Pool"
+        description={
+          poolToDelete ? (
+            <span>
+              Are you sure you want to delete VLAN pool with SVLAN range{' '}
+              <strong>
+                {poolToDelete.svlan_range_start} – {poolToDelete.svlan_range_end}
+              </strong>
+              ? Active BA SVLAN allocations must not depend on this range.
+            </span>
+          ) : null
+        }
+        confirmText="Delete Pool"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (poolToDelete) deleteMutation.mutate(poolToDelete.id)
+        }}
+        onClose={() => setPoolToDelete(null)}
+      />
+    </div>
+  )
+}
+
+// ── Circles Page ──────────────────────────────────────────────────────
 
 export function CirclesPage() {
   useRequireAuth(['SUPER_ADMIN'])
+  const { roleName } = useAuthStore()
+  const isSuper = roleName === 'SUPER_ADMIN'
   const qc = useQueryClient()
-  const [showForm, setShowForm] = useState(false)
   const [editingCircle, setEditingCircle] = useState<CircleRead | null>(null)
   const [editName, setEditName] = useState('')
+  const [expandedCircleId, setExpandedCircleId] = useState<number | null>(null)
 
   const { data: circles, isLoading } = useQuery({
     queryKey: ['circles'],
-    queryFn:  circlesApi.list,
-  })
-
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  })
-
-  const create = useMutation({
-    mutationFn: circlesApi.create,
-    onSuccess: () => {
-      toast.success('Circle created')
-      qc.invalidateQueries({ queryKey: ['circles'] })
-      reset()
-      setShowForm(false)
-    },
-    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to create circle')),
+    queryFn: circlesApi.list,
   })
 
   const updateCircle = useMutation({
@@ -56,7 +279,7 @@ export function CirclesPage() {
       qc.invalidateQueries({ queryKey: ['circles'] })
       setEditingCircle(null)
     },
-    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to update circle')),
+    onError: err => toast.error(extractErrorMessage(err, 'Failed to update circle')),
   })
 
   const handleEditClick = (c: CircleRead) => {
@@ -64,45 +287,43 @@ export function CirclesPage() {
     setEditName(c.name)
   }
 
+  const toggleExpand = (circleId: number) => {
+    setExpandedCircleId(curr => (curr === circleId ? null : circleId))
+  }
+
   return (
     <div>
       <PageHeader
         title="Circles"
         subtitle="BSNL telecom circles"
-        actions={
-          <Button size="sm" onClick={() => setShowForm(s => !s)}>
-            {showForm ? '✕ Cancel' : '➕ Add Circle'}
-          </Button>
-        }
       />
       <div className="p-8 flex flex-col gap-6">
-        {showForm && (
-          <Card className="max-w-md">
-            <CardHeader><h3 className="font-semibold text-foreground">New Circle</h3></CardHeader>
-            <CardBody>
-              <form onSubmit={handleSubmit(d => create.mutate(d))} className="flex flex-col gap-4">
-                <Input label="Name *" placeholder="Kerala" error={errors.name?.message} {...register('name')} />
-                <Input label="Code *" placeholder="KL"     error={errors.code?.message} {...register('code')} />
-                <Button type="submit" loading={create.isPending}>Create</Button>
-              </form>
-            </CardBody>
-          </Card>
-        )}
-
         {editingCircle && (
           <Card className="max-w-md border-amber-200 bg-amber-50/20">
-            <CardHeader><h3 className="font-semibold text-foreground">Edit Circle: {editingCircle.code}</h3></CardHeader>
+            <CardHeader>
+              <h3 className="font-semibold text-foreground">Edit Circle: {editingCircle.code}</h3>
+            </CardHeader>
             <CardBody>
               <form
-                onSubmit={(e) => {
+                onSubmit={e => {
                   e.preventDefault()
                   updateCircle.mutate({ id: editingCircle.id, data: { name: editName } })
                 }}
                 className="flex flex-col gap-4"
               >
-                <Input label="Circle Name *" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                <Input
+                  label="Circle Name *"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  required
+                />
                 <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="secondary" size="sm" onClick={() => setEditingCircle(null)}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEditingCircle(null)}
+                  >
                     Cancel
                   </Button>
                   <Button type="submit" size="sm" loading={updateCircle.isPending}>
@@ -114,7 +335,9 @@ export function CirclesPage() {
           </Card>
         )}
 
-        {isLoading ? <PageLoader /> : (
+        {isLoading ? (
+          <PageLoader />
+        ) : (
           <Table>
             <thead>
               <tr>
@@ -126,32 +349,69 @@ export function CirclesPage() {
               </tr>
             </thead>
             <tbody>
-              {!circles?.length
-                ? <EmptyRow cols={5} message="No circles yet" />
-                : circles.map(c => (
-                  <tr key={c.id} className="hover:bg-surface-2/50">
-                    <Td className="font-semibold">{c.name}</Td>
-                    <Td><code className="text-xs bg-surface-2 text-foreground border border-hairline px-2 py-0.5 rounded">{c.code}</code></Td>
-                    <Td>
-                      <button
-                        onClick={() => updateCircle.mutate({ id: c.id, data: { is_active: !c.is_active } })}
-                        title="Click to toggle active status"
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 ${
-                          c.is_active ? 'bg-green-100 text-green-700' : 'bg-surface-2 text-foreground border border-hairline text-gray-500'
-                        }`}
-                      >
-                        {c.is_active ? 'Active' : 'Inactive'}
-                      </button>
-                    </Td>
-                    <Td className="text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</Td>
-                    <Td>
-                      <Button size="xs" variant="secondary" onClick={() => handleEditClick(c)}>
-                        Edit
-                      </Button>
-                    </Td>
-                  </tr>
-                ))
-              }
+              {!circles?.length ? (
+                <EmptyRow cols={5} message="No circles yet" />
+              ) : (
+                circles.map(c => {
+                  const isExpanded = expandedCircleId === c.id
+                  return (
+                    <React.Fragment key={c.id}>
+                      <tr className={`hover:bg-surface-2/50 ${isExpanded ? 'bg-surface-2/30' : ''}`}>
+                        <Td className="font-semibold">{c.name}</Td>
+                        <Td>
+                          <code className="text-xs bg-surface-2 text-foreground border border-hairline px-2 py-0.5 rounded">
+                            {c.code}
+                          </code>
+                        </Td>
+                        <Td>
+                          <button
+                            onClick={() =>
+                              updateCircle.mutate({
+                                id: c.id,
+                                data: { is_active: !c.is_active },
+                              })
+                            }
+                            title="Click to toggle active status"
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 ${
+                              c.is_active
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-surface-2 text-foreground border border-hairline text-gray-500'
+                            }`}
+                          >
+                            {c.is_active ? 'Active' : 'Inactive'}
+                          </button>
+                        </Td>
+                        <Td className="text-muted-foreground text-xs">
+                          {new Date(c.created_at).toLocaleDateString()}
+                        </Td>
+                        <Td>
+                          <div className="flex items-center gap-2">
+                            <Button size="xs" variant="secondary" onClick={() => handleEditClick(c)}>
+                              Edit
+                            </Button>
+                            {isSuper && (
+                              <Button
+                                size="xs"
+                                variant={isExpanded ? 'primary' : 'secondary'}
+                                onClick={() => toggleExpand(c.id)}
+                              >
+                                {isExpanded ? '▲ Hide Pools' : '▼ VLAN Pools'}
+                              </Button>
+                            )}
+                          </div>
+                        </Td>
+                      </tr>
+                      {isExpanded && isSuper && (
+                        <tr>
+                          <td colSpan={5} className="p-0 border-b border-hairline">
+                            <CircleVlanPoolsSection circle={c} />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                })
+              )}
             </tbody>
           </Table>
         )}

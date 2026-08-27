@@ -1,3 +1,4 @@
+// DEPRECATED — content migrated to NOCOperationsPage and NOCProvisioningPage. Remove once wiring is complete.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -56,7 +57,15 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import type { InstanceRead, CustomerRead } from '@/types'
 
-function Verdict({ readyCount, isHealthChecking }: { readyCount: number; isHealthChecking: boolean }) {
+function Verdict({
+  readyCount,
+  isHealthChecking,
+  onRunHealthCheck,
+}: {
+  readyCount: number
+  isHealthChecking: boolean
+  onRunHealthCheck: () => void
+}) {
   const open = incidents.filter((i) => i.status !== "resolved")
   const crit = open.filter((i) => i.severity === "critical").length
   const status = crit ? "critical" : open.length ? "warn" : "healthy"
@@ -91,7 +100,7 @@ function Verdict({ readyCount, isHealthChecking }: { readyCount: number; isHealt
       </div>
       <div className="flex items-center gap-1.5">
         <button
-          onClick={() => toast.success("Health sweep queued across VyOS instances")}
+          onClick={onRunHealthCheck}
           disabled={isHealthChecking}
           className="rounded-md border border-hairline bg-surface px-2.5 py-1.5 text-[12px] transition-colors hover:bg-accent disabled:opacity-50"
         >
@@ -368,6 +377,47 @@ export function NOCDashboardPage() {
     queryFn: () => customersApi.list({ limit: 200 }),
   })
 
+  const runHealthCheckMutation = useMutation({
+    mutationFn: async () => {
+      let targetInstances = instances
+      if (!targetInstances || targetInstances.length === 0) {
+        targetInstances = await nocApi.listInstances()
+      }
+      if (!targetInstances || targetInstances.length === 0) {
+        throw new Error('No router instances configured to check')
+      }
+      const results = await Promise.allSettled(
+        targetInstances.map((inst) => nocApi.health(inst.id))
+      )
+      return { targetInstances, results }
+    },
+    onSuccess: ({ targetInstances, results }) => {
+      qc.invalidateQueries({ queryKey: ['noc-health'] })
+      qc.invalidateQueries({ queryKey: ['noc-instances'] })
+
+      const failed = results.filter((r) => {
+        if (r.status === 'rejected') return true
+        const val = r.value
+        return !val || (val.ssh_connected === false) || (val.status !== 'ok' && val.status !== 'online' && val.status !== 'reachable')
+      })
+
+      if (failed.length === 0) {
+        if (targetInstances.length === 1) {
+          toast.success(`Health check passed: ${targetInstances[0].name || `Router #${targetInstances[0].id}`} is healthy`)
+        } else {
+          toast.success(`Health check passed across all ${targetInstances.length} router instances`)
+        }
+      } else if (failed.length === targetInstances.length) {
+        toast.error(`Health check failed: all ${targetInstances.length} router instance(s) unreachable`)
+      } else {
+        toast.error(`Health check warning: ${failed.length} of ${targetInstances.length} instance(s) failed or degraded`)
+      }
+    },
+    onError: (err) => {
+      toast.error(extractErrorMessage(err, 'Failed to run health check'))
+    },
+  })
+
   const deboard = useMutation({
     mutationFn: (customerId: number) => nocApi.deboard(customerId),
     onSuccess: (res) => {
@@ -397,7 +447,11 @@ export function NOCDashboardPage() {
       />
 
       <div className="p-4 lg:p-8 space-y-6">
-        <Verdict readyCount={ready.length} isHealthChecking={loadingInstances} />
+        <Verdict
+          readyCount={ready.length}
+          isHealthChecking={runHealthCheckMutation.isPending}
+          onRunHealthCheck={() => runHealthCheckMutation.mutate()}
+        />
 
         {/* Top KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">

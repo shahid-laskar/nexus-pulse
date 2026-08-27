@@ -4,6 +4,7 @@ import type {
   BusinessAreaRead, BusinessAreaWithCircle, BusinessAreaCreate, BusinessAreaUpdate,
   CustomerRead, CustomerCreate, CustomerUpdate,
   CustomerNetworkUpdate, CustomerListResponse, PaginationParams,
+  CircleVlanPool, CircleVlanPoolCreate, BASvlanAllocation, BASvlanAllocationCreate,
 } from '@/types'
 
 // ── Circles ────────────────────────────────────────────────────────────
@@ -83,3 +84,40 @@ export const customersApi = {
     await api.delete(`/admin/customers/${id}/`)
   },
 }
+
+// ── VLAN Pools ────────────────────────────────────────────────────────
+
+export const vlanPoolsApi = {
+  list: async (circleId: number): Promise<CircleVlanPool[]> => {
+    const res = await api.get<CircleVlanPool[]>(`/admin/circles/${circleId}/vlan-pools/`)
+    return res.data
+  },
+
+  create: async (circleId: number, data: CircleVlanPoolCreate): Promise<CircleVlanPool> => {
+    const res = await api.post<CircleVlanPool>(`/admin/circles/${circleId}/vlan-pools/`, data)
+    return res.data
+  },
+
+  delete: async (circleId: number, poolId: number): Promise<void> => {
+    await api.delete(`/admin/circles/${circleId}/vlan-pools/${poolId}/`)
+  },
+}
+
+// ── BA SVLAN Allocations ──────────────────────────────────────────────
+
+export const baSvlanAllocationsApi = {
+  list: async (baId: number): Promise<BASvlanAllocation[]> => {
+    const res = await api.get<BASvlanAllocation[]>(`/admin/business-areas/${baId}/svlan-allocations/`)
+    return res.data
+  },
+
+  create: async (baId: number, data: BASvlanAllocationCreate): Promise<BASvlanAllocation> => {
+    const res = await api.post<BASvlanAllocation>(`/admin/business-areas/${baId}/svlan-allocations/`, data)
+    return res.data
+  },
+
+  delete: async (baId: number, allocId: number): Promise<void> => {
+    await api.delete(`/admin/business-areas/${baId}/svlan-allocations/${allocId}/`)
+  },
+}
+

@@ -1,135 +1,86 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
+import { useQuery } from '@tanstack/react-query'
 import { ebApi } from '@/api/eb'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import { extractErrorMessage } from '@/lib/axios'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { Button } from '@/components/ui/Button'
-import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
-import { StatusBadge } from '@/components/ui/Badge'
-import { PageLoader } from '@/components/ui/Spinner'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
 
 export function EBDashboardPage() {
   useRequireAuth(['SUPER_ADMIN', 'BA_ADMIN', 'BA_EB_ADMIN'])
   const { canManageCustomers } = useAuthStore()
-  const qc = useQueryClient()
-  const [selectedCustomerForReady, setSelectedCustomerForReady] = useState<{ id: number; name: string } | null>(null)
 
   const { data: stats } = useQuery({
     queryKey: ['eb-stats'],
     queryFn:  ebApi.dashboard,
   })
 
-  const { data: list, isLoading } = useQuery({
-    queryKey: ['eb-customers'],
-    queryFn:  () => ebApi.list({ limit: 200 }),
-  })
-
-  const markReady = useMutation({
-    mutationFn: (id: number) => ebApi.markReady(id),
-    onSuccess: () => {
-      toast.success('Marked as READY — NOC can now provision')
-      qc.invalidateQueries({ queryKey: ['eb-customers'] })
-      qc.invalidateQueries({ queryKey: ['eb-stats'] })
-      setSelectedCustomerForReady(null)
-    },
-    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to mark customer READY')),
-  })
-
-  const customers = list?.customers ?? []
-
   return (
     <div>
       <PageHeader
-        title="EB Management"
-        subtitle="Enterprise broadband customer staging"
+        title="EB Dashboard"
+        subtitle="Enterprise broadband customer staging and overview"
         actions={
-          canManageCustomers
-            ? <Link to="/eb/customers/create"><Button size="sm">➕ Add EB Customer</Button></Link>
-            : undefined
+          <div className="flex items-center gap-2">
+            <Link to="/eb/customers">
+              <Button size="sm" variant="secondary">📋 View All EB Customers</Button>
+            </Link>
+            {canManageCustomers && (
+              <Link to="/eb/customers/create">
+                <Button size="sm">➕ Add EB Customer</Button>
+              </Link>
+            )}
+          </div>
         }
       />
 
-      <div className="p-8">
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Total EB"  value={stats?.total   ?? '—'} />
-          <StatCard label="Draft"     value={stats?.draft   ?? '—'} color="blue"   sub="being filled" />
-          <StatCard label="Ready"     value={stats?.ready   ?? '—'} color="yellow" sub="awaiting NOC" />
-          <StatCard label="Pushed"    value={stats?.pushed  ?? '—'} color="green"  sub="provisioned" />
+      <div className="p-8 space-y-8">
+        {/* KPI Summary Cards */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            KPI Summary
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Total EB"  value={stats?.total   ?? '—'} />
+            <StatCard label="Draft"     value={stats?.draft   ?? '—'} color="blue"   sub="being filled" />
+            <StatCard label="Ready"     value={stats?.ready   ?? '—'} color="yellow" sub="awaiting NOC" />
+            <StatCard label="Pushed"    value={stats?.pushed  ?? '—'} color="green"  sub="provisioned" />
+          </div>
         </div>
 
-        {/* READY customers - action required */}
+        {/* READY customers - action required banner */}
         {(stats?.ready ?? 0) > 0 && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800">
-            <strong>{stats?.ready} customer(s)</strong> are ready for NOC provisioning.
-            Share with the NOC team to complete setup.
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800 flex items-center justify-between">
+            <div>
+              <strong>{stats?.ready} customer(s)</strong> are ready for NOC provisioning.
+              Share with the NOC team to complete setup.
+            </div>
+            <Link to="/eb/customers">
+              <Button size="sm" variant="secondary">View Ready Customers</Button>
+            </Link>
           </div>
         )}
 
-        {/* Customers table */}
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-foreground">EB Customers</h2>
+        {/* Status Breakdown Section */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Status Breakdown
+          </h2>
+          <div className="p-8 border border-dashed border-hairline rounded-xl bg-surface/50 text-center text-muted-foreground text-sm">
+            Coming in Sprint 4
+          </div>
         </div>
 
-        {isLoading ? <PageLoader /> : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>Company</Th><Th>GSTIN</Th><Th>Status</Th><Th>Contact</Th><Th>Actions</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {!customers.length
-                ? <EmptyRow cols={5} message="No EB customers yet. Add one to get started." />
-                : customers.map(c => (
-                  <tr key={c.id} className="hover:bg-surface-2/50">
-                    <Td>
-                      <Link to={`/eb/customers/${c.id}`} className="font-semibold text-primary hover:underline">
-                        {c.company_name}
-                      </Link>
-                    </Td>
-                    <Td className="font-mono text-xs">{c.gstin}</Td>
-                    <Td><StatusBadge status={c.status} /></Td>
-                    <Td className="text-muted-foreground text-xs">{c.contact_person}<br />{c.contact_phone}</Td>
-                    <Td>
-                      <div className="flex gap-2 flex-wrap">
-                        <Link to={`/eb/customers/${c.id}`}><Button size="sm" variant="secondary">View</Button></Link>
-                        {canManageCustomers && !c.is_pushed && (
-                          <Link to={`/eb/customers/${c.id}/edit`}><Button size="sm" variant="secondary">Edit</Button></Link>
-                        )}
-                        {canManageCustomers && c.status === 'DRAFT' && (
-                          <Button
-                            size="sm"
-                            onClick={() => setSelectedCustomerForReady({ id: c.id, name: c.company_name })}
-                          >
-                            Mark Ready
-                          </Button>
-                        )}
-                      </div>
-                    </Td>
-                  </tr>
-                ))
-              }
-            </tbody>
-          </Table>
-        )}
-
-        <ConfirmDialog
-          isOpen={Boolean(selectedCustomerForReady)}
-          title="Mark EB Customer as READY?"
-          description={`Are you sure you want to mark '${selectedCustomerForReady?.name}' as READY for NOC provisioning?`}
-          confirmText="Mark Ready"
-          variant="primary"
-          isLoading={markReady.isPending}
-          onConfirm={() => selectedCustomerForReady && markReady.mutate(selectedCustomerForReady.id)}
-          onClose={() => setSelectedCustomerForReady(null)}
-        />
+        {/* Recent Activity Feed */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Recent Activity Feed
+          </h2>
+          <div className="p-8 border border-dashed border-hairline rounded-xl bg-surface/50 text-center text-muted-foreground text-sm">
+            Coming in Sprint 4
+          </div>
+        </div>
       </div>
     </div>
   )

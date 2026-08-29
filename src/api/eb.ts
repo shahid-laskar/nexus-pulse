@@ -108,6 +108,11 @@ export const ebApi = {
 
   // ── Change Requests ──────────────────────────────────────────────────
 
+  listAllChangeRequests: async (params?: { status?: string; customer_id?: number; skip?: number; limit?: number }): Promise<ChangeRequest[]> => {
+    const res = await api.get<ChangeRequest[]>('/eb/change-requests/', { params })
+    return res.data
+  },
+
   listChangeRequests: async (customerId: number): Promise<ChangeRequest[]> => {
     const res = await api.get<ChangeRequest[]>(`/eb/customers/${customerId}/change-requests/`)
     return res.data
@@ -125,6 +130,13 @@ export const ebApi = {
 
   resubmitChangeRequest: async (reqId: number, data: ChangeRequestCreate): Promise<ChangeRequest> => {
     const res = await api.put<ChangeRequest>(`/eb/change-requests/${reqId}/resubmit/`, data)
+    return res.data
+  },
+
+  // ── Audit Logs ────────────────────────────────────────────────────────
+
+  listAuditLogs: async (params?: { customer_id?: number; action?: string; category?: string; skip?: number; limit?: number }): Promise<{ total: number; items: any[] }> => {
+    const res = await api.get<{ total: number; items: any[] }>('/eb/audit-logs/', { params })
     return res.data
   },
 }

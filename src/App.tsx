@@ -32,6 +32,7 @@ import { ChangeRequestsPage }  from '@/pages/noc/ChangeRequestsPage'
 import { OnboardPage }        from '@/pages/noc/OnboardPage'
 import { InstancesListPage }  from '@/pages/infrastructure/InstancesListPage'
 import { EBDashboardPage }    from '@/pages/eb/EBDashboardPage'
+import { EBChangeRequestsPage } from '@/pages/eb/EBChangeRequestsPage'
 import { EBCustomerListPage } from '@/pages/eb/EBCustomerListPage'
 import { EBCustomerFormPage } from '@/pages/eb/EBCustomerFormPage'
 import { EBCustomerDetailPage } from '@/pages/eb/EBCustomerDetailPage'
@@ -96,6 +97,7 @@ const router = createBrowserRouter([
 
       // EB
       { path: 'eb',                       element: <EBDashboardPage /> },
+      { path: 'eb/change-requests',       element: <EBChangeRequestsPage /> },
       { path: 'eb/customers',             element: <EBCustomerListPage /> },
       { path: 'eb/customers/create',      element: <EBCustomerFormPage /> },
       { path: 'eb/customers/:id',         element: <EBCustomerDetailPage /> },

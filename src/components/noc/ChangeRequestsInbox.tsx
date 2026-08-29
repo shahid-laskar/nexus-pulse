@@ -100,7 +100,7 @@ export function ChangeRequestsInbox({ onCustomerSelect, embedded = false }: Chan
     isFetching,
   } = useQuery({
     queryKey: ['noc-change-requests'],
-    queryFn: () => nocApi.listChangeRequests(),
+    queryFn: () => nocApi.listChangeRequests({ status: 'ALL' }),
     staleTime: 10_000,
   })
 

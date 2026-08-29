@@ -1084,3 +1084,28 @@ export interface ChangeRequestCreate {
 export interface ChangeRequestReview {
   noc_notes: string
 }
+
+// ── Audit Logs ────────────────────────────────────────────────────────
+
+export interface AuditLog {
+  id: number
+  customer_id?: number | null
+  customer_name?: string | null
+  business_area_id?: number | null
+  circle_id?: number | null
+  action: string
+  category: string
+  entity_type: string
+  entity_id?: string | null
+  actor_id?: number | null
+  actor_username: string
+  actor_role: string
+  summary: string
+  details?: Record<string, any> | null
+  created_at: string
+}
+
+export interface AuditLogListResponse {
+  total: number
+  items: AuditLog[]
+}

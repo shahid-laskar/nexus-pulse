@@ -96,8 +96,9 @@ export function Sidebar() {
 
         {canAccessEB && (
           <NavSection label="EB Management">
-            <NavItem to="/eb"             icon={Briefcase} label="EB Dashboard" />
-            <NavItem to="/eb/customers"   icon={ClipboardList} label="EB Customers" />
+            <NavItem to="/eb"                 icon={Briefcase} label="EB Dashboard" />
+            <NavItem to="/eb/change-requests" icon={GitPullRequest} label="Change Requests" />
+            <NavItem to="/eb/customers"       icon={ClipboardList} label="EB Customers" />
           </NavSection>
         )}
 

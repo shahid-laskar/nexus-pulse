@@ -37,6 +37,7 @@ interface EBChangeRequestModalProps {
   onClose: () => void
   customer: CustomerRead
   resubmitItem?: ChangeRequest | null
+  onSuccess?: () => void
 }
 
 const CATEGORIES: {
@@ -82,6 +83,7 @@ export function EBChangeRequestModal({
   onClose,
   customer,
   resubmitItem,
+  onSuccess,
 }: EBChangeRequestModalProps) {
   const qc = useQueryClient()
 
@@ -314,6 +316,8 @@ export function EBChangeRequestModal({
           : `Change request #${cr.id} submitted for NOC review`
       )
       qc.invalidateQueries({ queryKey: ['eb-change-requests', customer.id] })
+      qc.invalidateQueries({ queryKey: ['eb-all-change-requests'] })
+      onSuccess?.()
       onClose()
     },
     onError: (err) => {

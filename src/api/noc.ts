@@ -281,8 +281,8 @@ export const nocApi = {
 
   // ── Change Requests ──────────────────────────────────────────────────
 
-  listChangeRequests: async (): Promise<ChangeRequest[]> => {
-    const res = await api.get<ChangeRequest[]>('/noc/change-requests/')
+  listChangeRequests: async (params?: { status?: string }): Promise<ChangeRequest[]> => {
+    const res = await api.get<ChangeRequest[]>('/noc/change-requests/', { params })
     return res.data
   },
 
@@ -304,6 +304,13 @@ export const nocApi = {
     data: ChangeRequestReview
   ): Promise<ChangeRequest> => {
     const res = await api.post<ChangeRequest>(`/noc/change-requests/${reqId}/return/`, data)
+    return res.data
+  },
+
+  // ── Audit Logs ────────────────────────────────────────────────────────
+
+  listAuditLogs: async (params?: { customer_id?: number; action?: string; category?: string; skip?: number; limit?: number }): Promise<{ total: number; items: any[] }> => {
+    const res = await api.get<{ total: number; items: any[] }>('/noc/audit-logs/', { params })
     return res.data
   },
 

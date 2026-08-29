@@ -936,25 +936,96 @@ function VisualDiffModal({
               {/* Bandwidth Profile Diff */}
               {isBandwidthProfile ? (
                 <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                  <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 font-semibold text-xs text-slate-700 flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-amber-500" />
-                    Tiered Bandwidth Profiles (Download / Upload Limits)
+                  <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 font-semibold text-xs text-slate-700 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-amber-500" />
+                      <span>User Bandwidth Profiles & Speed Tiers</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-normal">Comparing Current vs Proposed Speed Limits</span>
                   </div>
                   <div className="p-4 space-y-3">
-                    {Object.entries(payload).map(([tierKey, tierVal]: [string, any]) => (
-                      <div key={tierKey} className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold font-mono text-xs uppercase">
-                            {tierKey}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="px-3 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-                            ↓ {tierVal?.download_speed ?? tierVal?.rate ?? '—'} Mbps / ↑ {tierVal?.upload_speed ?? tierVal?.ceil ?? '—'} Mbps
+                    {(() => {
+                      const profilesDict: Record<string, any> = payload.profiles || payload || {}
+                      const tierKeys = ['bronze', 'silver', 'gold', 'platinum'].filter((k) =>
+                        profilesDict[k] || (customer?.bandwidth_profiles || []).some((bp) => bp.profile_name === k)
+                      )
+                      const allKeys = Array.from(new Set([...tierKeys, ...Object.keys(profilesDict)]))
+
+                      const tierMeta: Record<string, { label: string; badge: string }> = {
+                        bronze: { label: 'Bronze - 2M/4M', badge: '🥉 Bronze' },
+                        silver: { label: 'Silver - 5M/10M', badge: '🥈 Silver' },
+                        gold: { label: 'Gold - 10M/20M', badge: '🥇 Gold' },
+                        platinum: { label: 'Platinum - 40M/100M', badge: '💎 Platinum' },
+                      }
+
+                      return allKeys.map((tierKey) => {
+                        const proposedVal = profilesDict[tierKey]
+                        const currentVal = (customer?.bandwidth_profiles || []).find((bp) => bp.profile_name === tierKey)
+                        const meta = tierMeta[tierKey] || { label: tierKey, badge: tierKey.toUpperCase() }
+
+                        const formatProfileSpeed = (p: any) => {
+                          if (!p) return <span className="text-slate-400 italic">Not configured</span>
+                          if (p.is_active === false) {
+                            return <span className="text-slate-400 font-medium">Disabled / Inactive</span>
+                          }
+                          const downRate = p.rate_bandwidth_down ? Math.round((p.rate_bandwidth_down / 1024) * 10) / 10 : p.download_speed ?? '—'
+                          const downCeil = p.ceil_bandwidth_down ? Math.round((p.ceil_bandwidth_down / 1024) * 10) / 10 : downRate
+                          const upRate = p.rate_bandwidth_up ? Math.round((p.rate_bandwidth_up / 1024) * 10) / 10 : p.upload_speed ?? '—'
+                          const upCeil = p.ceil_bandwidth_up ? Math.round((p.ceil_bandwidth_up / 1024) * 10) / 10 : upRate
+
+                          return (
+                            <div>
+                              <div className="font-semibold">
+                                ↓ {downRate}M {downCeil !== downRate && `(burst ${downCeil}M)`} / ↑ {upRate}M {upCeil !== upRate && `(burst ${upCeil}M)`}
+                              </div>
+                              {p.is_lan_only && (
+                                <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700 text-[10px] font-bold">
+                                  LAN-Only Group
+                                </span>
+                              )}
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <div
+                            key={tierKey}
+                            className="p-3 bg-white rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs"
+                          >
+                            <div className="min-w-[160px]">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold font-mono text-xs">
+                                  {meta.badge}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-slate-400 block mt-0.5">{meta.label}</span>
+                            </div>
+
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                              {/* Current Live Tier */}
+                              <div className="p-2.5 rounded-lg border bg-rose-50/80 border-rose-200/80 text-xs">
+                                <span className="text-[9.5px] font-bold uppercase tracking-wider text-rose-600 block mb-1">
+                                  Current Live Setting
+                                </span>
+                                <div className="text-rose-900 opacity-90">
+                                  {formatProfileSpeed(currentVal)}
+                                </div>
+                              </div>
+
+                              {/* Proposed Target Tier */}
+                              <div className="p-2.5 rounded-lg border bg-emerald-50 border-emerald-200 text-xs shadow-2xs">
+                                <span className="text-[9.5px] font-bold uppercase tracking-wider text-emerald-700 block mb-1">
+                                  Proposed Setting
+                                </span>
+                                <div className="text-emerald-900">
+                                  {formatProfileSpeed(proposedVal)}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        )
+                      })
+                    })()}
                   </div>
                 </div>
               ) : (

@@ -17,11 +17,19 @@ import { extractErrorMessage } from '@/lib/axios'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
+import {
+  DEFAULT_BANDWIDTH_PROFILES,
+  applyProfilePreset,
+  type ProfilePresetType,
+  kbpsToMbps,
+  mbpsToKbps,
+} from '@/lib/profileDefaults'
 import type {
   CustomerRead,
   ChangeRequest,
   ChangeRequestType,
   ChangeRequestCreate,
+  BandwidthProfileConfig,
 } from '@/types'
 
 interface EBChangeRequestModalProps {
@@ -107,14 +115,9 @@ export function EBChangeRequestModal({
   )
 
   // 3. BANDWIDTH_PROFILE state
-  const [profiles, setProfiles] = useState<{
-    [key: string]: { download_speed: number; upload_speed: number }
-  }>({
-    basic: { download_speed: 10, upload_speed: 5 },
-    standard: { download_speed: 25, upload_speed: 10 },
-    premium: { download_speed: 100, upload_speed: 50 },
-    guest: { download_speed: 5, upload_speed: 2 },
-  })
+  const [bandwidthProfiles, setBandwidthProfiles] = useState<BandwidthProfileConfig[]>([
+    ...DEFAULT_BANDWIDTH_PROFILES,
+  ])
 
   // 4. AUTH_OPTIONS state
   const [enablePasswordLogin, setEnablePasswordLogin] = useState(
@@ -158,7 +161,12 @@ export function EBChangeRequestModal({
         if (p.approval_otp_validity_minutes !== undefined)
           setOtpValidityMinutes(p.approval_otp_validity_minutes)
       } else if (resubmitItem.request_type === 'BANDWIDTH_PROFILE') {
-        if (p.profiles) setProfiles(p.profiles)
+        const pProfiles = p.profiles || {}
+        const merged = DEFAULT_BANDWIDTH_PROFILES.map((def) => {
+          const found = pProfiles[def.profile_name] || (customer.bandwidth_profiles || []).find((bp) => bp.profile_name === def.profile_name)
+          return found ? { ...def, ...found } : def
+        })
+        setBandwidthProfiles(merged)
       } else if (resubmitItem.request_type === 'AUTH_OPTIONS') {
         if (p.enable_password_login !== undefined)
           setEnablePasswordLogin(p.enable_password_login)
@@ -189,6 +197,16 @@ export function EBChangeRequestModal({
       setDataLimitMb(customer.data_limit_mb ?? 0)
       setTotalUsers(customer.total_users ?? 100)
       setOtpValidityMinutes(customer.approval_otp_validity_minutes ?? 180)
+      if (customer.bandwidth_profiles && customer.bandwidth_profiles.length > 0) {
+        const existingMap = new Map(customer.bandwidth_profiles.map((p) => [p.profile_name, p]))
+        const merged = DEFAULT_BANDWIDTH_PROFILES.map((def) => {
+          const found = existingMap.get(def.profile_name)
+          return found ? { ...def, ...found } : def
+        })
+        setBandwidthProfiles(merged)
+      } else {
+        setBandwidthProfiles([...DEFAULT_BANDWIDTH_PROFILES])
+      }
       setEnablePasswordLogin(customer.enable_password_login ?? true)
       setEnableOtpLogin(customer.enable_otp_login ?? false)
       setRegApprovalMode(customer.registration_approval_mode || 'manual')
@@ -198,6 +216,25 @@ export function EBChangeRequestModal({
       setQosInterface(customer.wan_interface || 'eth0')
     }
   }, [resubmitItem, customer, isOpen])
+
+  const handleProfileFieldChange = (
+    profileName: string,
+    field: keyof BandwidthProfileConfig,
+    value: any
+  ) => {
+    setBandwidthProfiles((prev) =>
+      prev.map((p) => {
+        if (p.profile_name === profileName) {
+          return { ...p, [field]: value }
+        }
+        return p
+      })
+    )
+  }
+
+  const handleApplyPreset = (preset: ProfilePresetType) => {
+    setBandwidthProfiles((prev) => applyProfilePreset(prev, preset))
+  }
 
   const buildPayload = (): Record<string, any> => {
     switch (selectedType) {
@@ -220,10 +257,24 @@ export function EBChangeRequestModal({
           total_users: Number(totalUsers),
           approval_otp_validity_minutes: Number(otpValidityMinutes),
         }
-      case 'BANDWIDTH_PROFILE':
-        return {
-          profiles,
+      case 'BANDWIDTH_PROFILE': {
+        const profilesDict: Record<string, any> = {}
+        for (const p of bandwidthProfiles) {
+          profilesDict[p.profile_name] = {
+            display_name: p.display_name,
+            rate_bandwidth_up: Number(p.rate_bandwidth_up),
+            ceil_bandwidth_up: Number(p.ceil_bandwidth_up),
+            rate_bandwidth_down: Number(p.rate_bandwidth_down),
+            ceil_bandwidth_down: Number(p.ceil_bandwidth_down),
+            priority: Number(p.priority),
+            is_active: Boolean(p.is_active),
+            is_lan_only: Boolean(p.is_lan_only),
+          }
         }
+        return {
+          profiles: profilesDict,
+        }
+      }
       case 'AUTH_OPTIONS':
         return {
           enable_password_login: Boolean(enablePasswordLogin),
@@ -548,62 +599,214 @@ export function EBChangeRequestModal({
 
             {/* 3. BANDWIDTH_PROFILE */}
             {selectedType === 'BANDWIDTH_PROFILE' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h3 className="text-sm font-bold text-slate-900">Bandwidth Profile Rates</h3>
-                  <span className="text-xs text-slate-500">Configure speed tiers</span>
+              <div className="space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">User Bandwidth Profiles & Speed Tiers</h3>
+                    <span className="text-xs text-slate-500">Configure multi-tier download and upload rate limits</span>
+                  </div>
+                  {/* Preset Shortcuts */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPreset('bronze_only')}
+                      className="px-2 py-1 text-[11px] font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                    >
+                      Bronze Only
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPreset('bronze_gold')}
+                      className="px-2 py-1 text-[11px] font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                    >
+                      Bronze + Gold
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPreset('all_four')}
+                      className="px-2 py-1 text-[11px] font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                    >
+                      All 4 Tiers
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  {Object.entries(profiles).map(([pName, pVal]) => (
-                    <div
-                      key={pName}
-                      className="bg-white p-3 rounded-lg border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-                    >
-                      <div className="w-32">
-                        <span className="text-xs font-bold uppercase text-slate-800">{pName}</span>
-                        <span className="block text-[11px] text-slate-400">Profile Tier</span>
-                      </div>
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="flex-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase">
-                            Download (Mbps)
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={10000}
-                            value={pVal.download_speed}
-                            onChange={(e) =>
-                              setProfiles((prev) => ({
-                                ...prev,
-                                [pName]: { ...prev[pName], download_speed: Number(e.target.value) },
-                              }))
-                            }
-                            className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 font-mono"
-                          />
+                <div className="space-y-4">
+                  {bandwidthProfiles.map((p) => {
+                    const tierMeta: Record<string, { label: string; badge: string; color: string }> = {
+                      bronze: { label: 'Bronze (Tier 1 - Default)', badge: '🥉 Bronze', color: 'border-amber-700/30 bg-amber-50/30' },
+                      silver: { label: 'Silver (Tier 2)', badge: '🥈 Silver', color: 'border-slate-300 bg-slate-50/50' },
+                      gold: { label: 'Gold (Tier 3 - VIP)', badge: '🥇 Gold', color: 'border-yellow-500/30 bg-yellow-50/30' },
+                      platinum: { label: 'Platinum (Tier 4 - Executive)', badge: '💎 Platinum', color: 'border-cyan-500/30 bg-cyan-50/30' },
+                    }
+                    const meta = tierMeta[p.profile_name] || {
+                      label: p.display_name,
+                      badge: p.profile_name.toUpperCase(),
+                      color: 'border-slate-200 bg-slate-50',
+                    }
+
+                    const liveP = (customer.bandwidth_profiles || []).find((bp) => bp.profile_name === p.profile_name)
+
+                    return (
+                      <div
+                        key={p.profile_name}
+                        className={`rounded-xl border p-4 transition-all ${
+                          p.is_active ? 'border-slate-300 bg-white shadow-2xs' : 'border-slate-200 bg-slate-50/60 opacity-75'
+                        }`}
+                      >
+                        {/* Tier Header */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-3">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 font-mono">
+                              {meta.badge}
+                            </span>
+                            <div>
+                              <span className="text-xs font-bold text-slate-900 block">{meta.label}</span>
+                              <span className="text-[10.5px] text-slate-400">
+                                Priority: {p.priority} • {p.display_name}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            {/* LAN-Only Toggle */}
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={p.is_lan_only}
+                                onChange={(e) =>
+                                  handleProfileFieldChange(p.profile_name, 'is_lan_only', e.target.checked)
+                                }
+                                className="w-3.5 h-3.5 text-primary rounded"
+                              />
+                              <span className="text-[11px] font-semibold text-slate-600">LAN-Only</span>
+                            </label>
+
+                            {/* Active Toggle */}
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={p.is_active}
+                                onChange={(e) =>
+                                  handleProfileFieldChange(p.profile_name, 'is_active', e.target.checked)
+                                }
+                                className="w-4 h-4 text-primary rounded"
+                              />
+                              <span className={`text-xs font-bold ${p.is_active ? 'text-emerald-700' : 'text-slate-400'}`}>
+                                {p.is_active ? 'Enabled' : 'Disabled'}
+                              </span>
+                            </label>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase">
-                            Upload (Mbps)
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={10000}
-                            value={pVal.upload_speed}
-                            onChange={(e) =>
-                              setProfiles((prev) => ({
-                                ...prev,
-                                [pName]: { ...prev[pName], upload_speed: Number(e.target.value) },
-                              }))
-                            }
-                            className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 font-mono"
-                          />
-                        </div>
+
+                        {/* Bandwidth Limits Grid (in Mbps) */}
+                        {p.is_active && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+                            <div>
+                              <label className="text-[10.5px] font-bold text-slate-600 uppercase block mb-1">
+                                Download Rate (Mbps)
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={10000}
+                                value={kbpsToMbps(p.rate_bandwidth_down)}
+                                onChange={(e) =>
+                                  handleProfileFieldChange(
+                                    p.profile_name,
+                                    'rate_bandwidth_down',
+                                    mbpsToKbps(Number(e.target.value))
+                                  )
+                                }
+                                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 font-mono focus:border-primary outline-none"
+                              />
+                              {liveP && (
+                                <span className="text-[10px] text-slate-400 mt-0.5 block truncate">
+                                  Current: {kbpsToMbps(liveP.rate_bandwidth_down)} Mbps
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="text-[10.5px] font-bold text-slate-600 uppercase block mb-1">
+                                Burst Download (Mbps)
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={10000}
+                                value={kbpsToMbps(p.ceil_bandwidth_down)}
+                                onChange={(e) =>
+                                  handleProfileFieldChange(
+                                    p.profile_name,
+                                    'ceil_bandwidth_down',
+                                    mbpsToKbps(Number(e.target.value))
+                                  )
+                                }
+                                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 font-mono focus:border-primary outline-none"
+                              />
+                              {liveP && (
+                                <span className="text-[10px] text-slate-400 mt-0.5 block truncate">
+                                  Current: {kbpsToMbps(liveP.ceil_bandwidth_down)} Mbps
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="text-[10.5px] font-bold text-slate-600 uppercase block mb-1">
+                                Upload Rate (Mbps)
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={10000}
+                                value={kbpsToMbps(p.rate_bandwidth_up)}
+                                onChange={(e) =>
+                                  handleProfileFieldChange(
+                                    p.profile_name,
+                                    'rate_bandwidth_up',
+                                    mbpsToKbps(Number(e.target.value))
+                                  )
+                                }
+                                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 font-mono focus:border-primary outline-none"
+                              />
+                              {liveP && (
+                                <span className="text-[10px] text-slate-400 mt-0.5 block truncate">
+                                  Current: {kbpsToMbps(liveP.rate_bandwidth_up)} Mbps
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="text-[10.5px] font-bold text-slate-600 uppercase block mb-1">
+                                Burst Upload (Mbps)
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={10000}
+                                value={kbpsToMbps(p.ceil_bandwidth_up)}
+                                onChange={(e) =>
+                                  handleProfileFieldChange(
+                                    p.profile_name,
+                                    'ceil_bandwidth_up',
+                                    mbpsToKbps(Number(e.target.value))
+                                  )
+                                }
+                                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 font-mono focus:border-primary outline-none"
+                              />
+                              {liveP && (
+                                <span className="text-[10px] text-slate-400 mt-0.5 block truncate">
+                                  Current: {kbpsToMbps(liveP.ceil_bandwidth_up)} Mbps
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}

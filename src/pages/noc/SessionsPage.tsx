@@ -2,6 +2,22 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import {
+  ArrowLeft,
+  Activity,
+  Zap,
+  Radio,
+  Shield,
+  AlertOctagon,
+  Users,
+  Settings,
+  Flame,
+  Trash2,
+  Building,
+  ArrowUpRight,
+  RefreshCw,
+} from 'lucide-react'
+
 import { nocApi } from '@/api/noc'
 import { customersApi } from '@/api/master-data'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
@@ -15,6 +31,7 @@ import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import { PageLoader } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { cn } from '@/lib/utils'
 import type { BandwidthProfileRead, SessionRead, ConntrackRecord, CustomerRead, UpstreamUserRead } from '@/types'
 
 export function SessionsPage() {
@@ -38,42 +55,69 @@ function CustomerSelectorForSessions() {
   const pushedCustomers = (data?.customers || []).filter(c => c.is_pushed)
 
   return (
-    <div>
-      <PageHeader title="NOC Sessions & Router Diagnostics" subtitle="Select a provisioned customer to view live sessions and router controls." />
-      <div className="p-8">
-        <h2 className="font-bold text-foreground mb-3">Provisioned Customers</h2>
-        {isLoading ? <PageLoader /> : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>Company</Th>
-                <Th>GSTIN</Th>
-                <Th>Captive Slug</Th>
-                <Th>Instance</Th>
-                <Th>Action</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {!pushedCustomers.length ? (
-                <EmptyRow cols={5} message="No provisioned customers available." />
-              ) : (
-                pushedCustomers.map((c: CustomerRead) => (
-                  <tr key={c.id} className="hover:bg-slate-50">
-                    <Td className="font-semibold text-foreground">{c.company_name}</Td>
-                    <Td className="font-mono text-xs text-slate-700">{c.gstin}</Td>
-                    <Td><code className="text-xs bg-surface-2 text-foreground border border-hairline px-1.5 py-0.5 rounded font-mono">{c.captive_customer_slug}</code></Td>
-                    <Td className="text-xs text-slate-600">Instance #{c.captive_instance_id}</Td>
-                    <Td>
-                      <Link to={`/noc/customers/${c.id}/sessions`}>
-                        <Button size="sm">Open Operational Controls →</Button>
-                      </Link>
-                    </Td>
+    <div className="min-h-screen bg-slate-50">
+      <PageHeader
+        title="NOC Sessions & Router Diagnostics"
+        subtitle="Select an active enterprise customer to inspect live IP subscriber sessions, conntrack table, and firewall filters"
+      />
+      <div className="p-6 lg:p-8 space-y-6 max-w-[1680px]">
+        <Card className="border-slate-200 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-blue-50 text-blue-600">
+                <Building className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">Provisioned Enterprise Customers ({pushedCustomers.length})</h3>
+                <p className="text-[11px] text-slate-500">Fleet customers active on VyOS edge routers</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardBody className="p-0">
+            {isLoading ? (
+              <PageLoader />
+            ) : (
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Company &amp; Organization</Th>
+                    <Th>GSTIN</Th>
+                    <Th>Captive Slug</Th>
+                    <Th>Instance</Th>
+                    <Th className="text-right">Actions</Th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </Table>
-        )}
+                </thead>
+                <tbody>
+                  {!pushedCustomers.length ? (
+                    <EmptyRow cols={5} message="No provisioned customers available on the router fleet." />
+                  ) : (
+                    pushedCustomers.map((c: CustomerRead) => (
+                      <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                        <Td className="font-semibold text-slate-900 text-xs">{c.company_name}</Td>
+                        <Td className="font-mono text-xs text-slate-500">{c.gstin}</Td>
+                        <Td>
+                          <code className="text-[11px] bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-mono">
+                            {c.captive_customer_slug}
+                          </code>
+                        </Td>
+                        <Td className="text-xs text-slate-600 font-mono">Instance #{c.captive_instance_id}</Td>
+                        <Td className="text-right">
+                          <Link to={`/noc/customers/${c.id}/sessions`}>
+                            <Button size="xs" variant="primary" className="gap-1 h-7 text-xs">
+                              <Activity className="h-3 w-3" />
+                              Inspect Controls
+                              <ArrowUpRight className="h-3 w-3" />
+                            </Button>
+                          </Link>
+                        </Td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </Table>
+            )}
+          </CardBody>
+        </Card>
       </div>
     </div>
   )
@@ -175,75 +219,77 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
 
   const profiles: BandwidthProfileRead[] = profilesData?.profiles || profilesData?.bandwidth_profiles || []
 
+  const tabButtons: { id: TabType; label: string; icon: any; count?: number | string }[] = [
+    { id: 'sessions', label: 'Active Sessions', icon: Zap, count: sessions?.session_count ?? 0 },
+    { id: 'conntrack', label: 'Conntrack', icon: Radio, count: conntrackData?.connection_count },
+    { id: 'status', label: 'Firewall & TC QoS', icon: Shield },
+    { id: 'auth', label: 'Auth Rejections', icon: AlertOctagon },
+    { id: 'users', label: 'Upstream Users', icon: Users },
+    { id: 'config', label: 'Upstream Config', icon: Settings },
+  ]
+
   return (
-    <div>
+    <div className="min-h-screen bg-slate-50">
       <PageHeader
         title={`Operational Control — ${customer?.company_name || `Customer #${customerId}`}`}
         subtitle={`Instance #${customer?.captive_instance_id ?? '—'} · Slug: ${customer?.captive_customer_slug ?? '—'}`}
         actions={
-          <div className="flex gap-2">
-            <Link to="/noc"><Button variant="secondary" size="sm">← Back to NOC</Button></Link>
-            <Button variant="secondary" size="sm" onClick={() => setConfirmFlushConntrack(true)}>
-              🧹 Flush Conntrack
+          <div className="flex items-center gap-2">
+            <Link to="/noc">
+              <Button variant="secondary" size="sm" className="gap-1.5 h-8 text-xs">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back to NOC
+              </Button>
+            </Link>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setConfirmFlushConntrack(true)}
+              className="gap-1.5 h-8 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+            >
+              <Flame className="h-3.5 w-3.5 text-amber-600" />
+              Flush Conntrack
             </Button>
-            <Button variant="danger" size="sm" onClick={() => setConfirmFlushSessions(true)}>
-              ⚠️ Flush All Sessions
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setConfirmFlushSessions(true)}
+              className="gap-1.5 h-8 text-xs"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Flush All Sessions
             </Button>
           </div>
         }
       />
 
-      <div className="p-8 space-y-6">
+      <div className="p-6 lg:p-8 space-y-6 max-w-[1680px]">
         {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-200 gap-2 flex-wrap">
-          <button
-            onClick={() => setActiveTab('sessions')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === 'sessions' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
-            }`}
-          >
-            ⚡ Active Sessions ({sessions?.session_count ?? 0})
-          </button>
-          <button
-            onClick={() => setActiveTab('conntrack')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === 'conntrack' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
-            }`}
-          >
-            🔌 Conntrack Connections ({conntrackData?.connection_count ?? '—'})
-          </button>
-          <button
-            onClick={() => setActiveTab('status')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === 'status' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
-            }`}
-          >
-            🛡️ Router Firewall & TC Status
-          </button>
-          <button
-            onClick={() => setActiveTab('auth')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === 'auth' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
-            }`}
-          >
-            🚫 Auth Rejections
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === 'users' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
-            }`}
-          >
-            👥 Upstream Users
-          </button>
-          <button
-            onClick={() => setActiveTab('config')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
-              activeTab === 'config' ? 'border-[#004aad] text-[#004aad]' : 'border-transparent text-slate-500 hover:text-foreground'
-            }`}
-          >
-            ⚙️ Upstream Config
-          </button>
+        <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-xl border border-slate-200 shadow-2xs overflow-x-auto">
+          {tabButtons.map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap',
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                )}
+              >
+                <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-white' : 'text-slate-400')} />
+                <span>{tab.label}</span>
+                {tab.count != null && (
+                  <span className={cn('ml-1 text-[11px] px-1.5 py-0.2 rounded-full font-mono', isActive ? 'bg-white/20 text-white font-bold' : 'bg-slate-100 text-slate-600')}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         {/* Tab 1: Sessions */}
@@ -270,7 +316,7 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
                   ) : (
                     sessions.sessions.map((s: SessionRead) => (
                       <tr key={s.ip} className="hover:bg-slate-50">
-                        <Td><code className="font-mono text-sm text-foreground font-semibold">{s.ip}</code></Td>
+                        <Td><code className="font-mono text-sm text-slate-900 font-semibold">{s.ip}</code></Td>
                         <Td className="text-sm text-slate-600">
                           {s.timeout_remaining != null ? `${s.timeout_remaining}s` : 'Unlimited / None'}
                         </Td>
@@ -304,7 +350,7 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
         {activeTab === 'conntrack' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Active Conntrack Table</h3>
+              <h3 className="font-bold text-slate-900">Active Conntrack Table</h3>
               <Button size="sm" variant="secondary" onClick={() => setConfirmFlushConntrack(true)}>
                 Flush Conntrack
               </Button>
@@ -344,7 +390,7 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <h3 className="font-semibold text-foreground">TC Traffic Control Status</h3>
+                  <h3 className="font-semibold text-slate-900">TC Traffic Control Status</h3>
                   <div className="flex gap-2 items-center">
                     <span className="text-xs text-slate-500">Max: {customer?.max_bandwidth}</span>
                   </div>
@@ -421,10 +467,10 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
 
         {/* Stats Modal / Panel */}
         {selectedStats && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-surface rounded-lg p-6 max-w-lg w-full shadow-xl">
-              <h3 className="text-lg font-bold text-foreground mb-2">QoS Statistics</h3>
-              <pre className="bg-surface-2 text-foreground border border-hairline p-4 rounded text-xs font-mono overflow-auto max-h-64 mb-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+              <h3 className="text-base font-bold text-slate-900 mb-2">QoS Statistics</h3>
+              <pre className="bg-slate-50 text-slate-900 border border-slate-200 p-4 rounded-xl text-xs font-mono overflow-auto max-h-64 mb-4">
                 {JSON.stringify(selectedStats, null, 2)}
               </pre>
               <div className="flex justify-end">
@@ -438,7 +484,7 @@ function CustomerSessionsView({ customerId }: { customerId: number }) {
         {activeTab === 'auth' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Recent Authentication Failures</h3>
+              <h3 className="font-bold text-slate-900">Recent Authentication Failures</h3>
             </div>
             {loadingAuth ? <PageLoader /> : (
               <Table>
@@ -608,8 +654,8 @@ function UpstreamUsersTab({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="font-bold text-foreground">Captive Portal User Administration</h3>
-          <p className="text-xs text-muted-foreground">Manage user credentials and accounts provisioned on this customer's captive portal router instance.</p>
+          <h3 className="font-bold text-slate-900">Captive Portal User Administration</h3>
+          <p className="text-xs text-slate-500">Manage user credentials and accounts provisioned on this customer's captive portal router instance.</p>
         </div>
         <Button size="sm" onClick={() => setIsCreateOpen(true)}>
           ➕ Add Captive User
@@ -641,14 +687,14 @@ function UpstreamUsersTab({
             ) : (
               users.map((u) => (
                 <tr key={u.username} className="hover:bg-slate-50 text-sm">
-                  <Td className="font-mono font-semibold text-foreground">{u.username}</Td>
+                  <Td className="font-mono font-semibold text-slate-900">{u.username}</Td>
                   <Td>
-                    <div className="font-medium text-foreground">{u.full_name || '—'}</div>
-                    <div className="text-xs text-muted-foreground">{u.email || '—'}</div>
+                    <div className="font-medium text-slate-900">{u.full_name || '—'}</div>
+                    <div className="text-xs text-slate-500">{u.email || '—'}</div>
                   </Td>
                   <Td className="font-mono text-xs">{u.phone || '—'}</Td>
                   <Td>
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-surface-2 border border-hairline">
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 border border-slate-200">
                       {u.profile || 'Default'}
                     </span>
                   </Td>
@@ -658,7 +704,7 @@ function UpstreamUsersTab({
                       variant={u.status === 'active' || !u.status ? 'success' : 'warning'}
                     />
                   </Td>
-                  <Td className="text-xs text-muted-foreground font-mono">
+                  <Td className="text-xs text-slate-500 font-mono">
                     {u.usage?.data_used_mb != null ? `${u.usage.data_used_mb} MB` : '0 MB'}
                   </Td>
                   <Td>
@@ -680,9 +726,9 @@ function UpstreamUsersTab({
 
       {/* Create Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface rounded-lg p-6 max-w-md w-full shadow-xl border border-hairline">
-            <h3 className="text-lg font-bold text-foreground mb-4">Create Captive Portal User</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-base font-bold text-slate-900 mb-4">Create Captive Portal User</h3>
             <form onSubmit={handleCreateSubmit} className="space-y-3">
               <Input
                 label="Username"
@@ -720,13 +766,13 @@ function UpstreamUsersTab({
               />
               {profiles.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
                     Bandwidth Profile
                   </label>
                   <select
                     value={createForm.profile}
                     onChange={(e) => setCreateForm({ ...createForm, profile: e.target.value })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-hairline bg-surface text-foreground"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-900"
                   >
                     {profiles.map((p) => (
                       <option key={p.name} value={p.name}>
@@ -751,9 +797,9 @@ function UpstreamUsersTab({
 
       {/* Edit Modal */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface rounded-lg p-6 max-w-md w-full shadow-xl border border-hairline">
-            <h3 className="text-lg font-bold text-foreground mb-4">Edit User: {editingUser.username}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-base font-bold text-slate-900 mb-4">Edit User: {editingUser.username}</h3>
             <form onSubmit={handleEditSubmit} className="space-y-3">
               <Input
                 label="Full Name"
@@ -780,13 +826,13 @@ function UpstreamUsersTab({
               />
               {profiles.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
                     Bandwidth Profile
                   </label>
                   <select
                     value={editForm.profile}
                     onChange={(e) => setEditForm({ ...editForm, profile: e.target.value })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-hairline bg-surface text-foreground"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-900"
                   >
                     {profiles.map((p) => (
                       <option key={p.name} value={p.name}>
@@ -903,8 +949,8 @@ function UpstreamConfigTab({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="font-bold text-foreground">Upstream Customer Configuration (VyOS / Captive Portal)</h3>
-          <p className="text-xs text-muted-foreground">
+          <h3 className="font-bold text-slate-900">Upstream Customer Configuration (VyOS / Captive Portal)</h3>
+          <p className="text-xs text-slate-500">
             Direct customer state stored on router instance #{customer?.captive_instance_id ?? '—'} (Slug: {customer?.captive_customer_slug ?? '—'})
           </p>
         </div>
@@ -942,7 +988,7 @@ function UpstreamConfigTab({
               value={configText}
               onChange={(e) => setConfigText(e.target.value)}
               rows={22}
-              className="w-full font-mono text-xs p-3 rounded-lg border border-hairline bg-slate-900 text-green-400 outline-none focus:border-primary"
+              className="w-full font-mono text-xs p-3 rounded-lg border border-slate-200 bg-slate-900 text-green-400 outline-none focus:border-primary"
               spellCheck={false}
             />
           </CardBody>
@@ -953,33 +999,33 @@ function UpstreamConfigTab({
             <CardHeader>Live Router Configuration Summary</CardHeader>
             <CardBody>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono mb-4">
-                <div className="p-3 bg-surface-2 rounded border border-hairline">
-                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">Slug</span>
-                  <span className="font-semibold text-foreground">{customerObj?.slug || customerObj?.user_account || '—'}</span>
+                <div className="p-3 bg-slate-100 rounded border border-slate-200">
+                  <span className="text-slate-500 block uppercase text-[10px] font-bold">Slug</span>
+                  <span className="font-semibold text-slate-900">{customerObj?.slug || customerObj?.user_account || '—'}</span>
                 </div>
-                <div className="p-3 bg-surface-2 rounded border border-hairline">
-                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">WAN / QinQ Interface</span>
-                  <span className="font-semibold text-foreground">{customerObj?.network?.wan_interface || customerObj?.wan_interface || '—'} / {customerObj?.network?.qinq_interface || customerObj?.qinq_interface || '—'}</span>
+                <div className="p-3 bg-slate-100 rounded border border-slate-200">
+                  <span className="text-slate-500 block uppercase text-[10px] font-bold">WAN / QinQ Interface</span>
+                  <span className="font-semibold text-slate-900">{customerObj?.network?.wan_interface || customerObj?.wan_interface || '—'} / {customerObj?.network?.qinq_interface || customerObj?.qinq_interface || '—'}</span>
                 </div>
-                <div className="p-3 bg-surface-2 rounded border border-hairline">
-                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">IP Range</span>
-                  <span className="font-semibold text-foreground">{customerObj?.network?.start_ip || customerObj?.start_ip || '—'} – {customerObj?.network?.end_ip || customerObj?.end_ip || '—'}</span>
+                <div className="p-3 bg-slate-100 rounded border border-slate-200">
+                  <span className="text-slate-500 block uppercase text-[10px] font-bold">IP Range</span>
+                  <span className="font-semibold text-slate-900">{customerObj?.network?.start_ip || customerObj?.start_ip || '—'} – {customerObj?.network?.end_ip || customerObj?.end_ip || '—'}</span>
                 </div>
-                <div className="p-3 bg-surface-2 rounded border border-hairline">
-                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">SVLAN / CVLAN</span>
-                  <span className="font-semibold text-foreground">{customerObj?.network?.svlan || customerObj?.svlan || '—'} / {customerObj?.network?.cvlan || customerObj?.cvlan || 'None'}</span>
+                <div className="p-3 bg-slate-100 rounded border border-slate-200">
+                  <span className="text-slate-500 block uppercase text-[10px] font-bold">SVLAN / CVLAN</span>
+                  <span className="font-semibold text-slate-900">{customerObj?.network?.svlan || customerObj?.svlan || '—'} / {customerObj?.network?.cvlan || customerObj?.cvlan || 'None'}</span>
                 </div>
-                <div className="p-3 bg-surface-2 rounded border border-hairline">
-                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">Session / Idle Timeout</span>
-                  <span className="font-semibold text-foreground">{customerObj?.session_defaults?.session_timeout || customerObj?.session_timeout || 0}s / {customerObj?.session_defaults?.idle_timeout || customerObj?.idle_timeout || 0}s</span>
+                <div className="p-3 bg-slate-100 rounded border border-slate-200">
+                  <span className="text-slate-500 block uppercase text-[10px] font-bold">Session / Idle Timeout</span>
+                  <span className="font-semibold text-slate-900">{customerObj?.session_defaults?.session_timeout || customerObj?.session_timeout || 0}s / {customerObj?.session_defaults?.idle_timeout || customerObj?.idle_timeout || 0}s</span>
                 </div>
-                <div className="p-3 bg-surface-2 rounded border border-hairline">
-                  <span className="text-muted-foreground block uppercase text-[10px] font-bold">Total Users Limit</span>
-                  <span className="font-semibold text-foreground">{customerObj?.total_users ?? '—'}</span>
+                <div className="p-3 bg-slate-100 rounded border border-slate-200">
+                  <span className="text-slate-500 block uppercase text-[10px] font-bold">Total Users Limit</span>
+                  <span className="font-semibold text-slate-900">{customerObj?.total_users ?? '—'}</span>
                 </div>
               </div>
 
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 block">Full Raw JSON Payload</span>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Full Raw JSON Payload</span>
               <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-xs font-mono overflow-auto max-h-[450px]">
                 {JSON.stringify(config, null, 2)}
               </pre>
@@ -1041,7 +1087,7 @@ function QoSControlInline({
         <select
           value={selectedProfileId}
           onChange={(e) => setSelectedProfileId(e.target.value)}
-          className="text-xs border border-slate-300 rounded px-2 py-1 font-medium bg-surface"
+          className="text-xs border border-slate-300 rounded px-2 py-1 font-medium bg-white"
         >
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>

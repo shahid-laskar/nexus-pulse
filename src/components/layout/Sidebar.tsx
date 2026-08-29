@@ -37,22 +37,22 @@ export function Sidebar() {
     : '?'
 
   return (
-    <aside className="sticky top-0 h-screen shrink-0 w-60 flex flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 z-50">
+    <aside className="sticky top-0 h-screen shrink-0 w-60 flex flex-col border-r border-slate-200 bg-white transition-[width] duration-200 z-50">
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4 shrink-0">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
+      <div className="flex h-14 items-center gap-2.5 border-b border-slate-200 px-4 shrink-0 bg-white">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary text-white shadow-2xs">
           <Zap className="h-4 w-4" />
         </span>
-        <span className="text-[13px] font-semibold tracking-tight text-sidebar-foreground">
-          BSNL <span className="font-normal text-muted-foreground">Pulse</span>
+        <span className="text-[13px] font-bold tracking-tight text-slate-900">
+          BSNL <span className="font-normal text-slate-500">Pulse</span>
         </span>
       </div>
 
       {/* Scope badge */}
       {(scopeCircle || scopeBA) && (
-        <div className="px-4 py-2.5 bg-sidebar-accent/50 border-b border-sidebar-border text-[11px] text-muted-foreground shrink-0 font-mono">
-          {scopeCircle && <span className="text-sidebar-foreground font-medium">{scopeCircle.name}</span>}
-          {scopeBA && <> / <span className="text-sidebar-foreground font-medium">{scopeBA.name}</span></>}
+        <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500 shrink-0 font-mono">
+          {scopeCircle && <span className="text-slate-800 font-semibold">{scopeCircle.name}</span>}
+          {scopeBA && <> / <span className="text-slate-800 font-semibold">{scopeBA.name}</span></>}
         </div>
       )}
 
@@ -65,9 +65,10 @@ export function Sidebar() {
 
         {canManageCustomers && (
           <NavSection label="Master Data">
-            {canManageCircles && <NavItem to="/circles"        icon={Globe} label="Circles" />}
-            {canManageBAs     && <NavItem to="/business-areas" icon={Building} label="Business Areas" />}
-            <NavItem to="/customers" icon={Users} label="Customers" />
+            {(canManageCircles || canManageBAs) && (
+              <NavItem to="/circles" icon={Globe} label="Circles & BAs" />
+            )}
+            {!canAccessEB && <NavItem to="/customers" icon={Users} label="Customers" />}
             {isSuper && <NavItem to="/admin/router-approvals" icon={ShieldCheck} label="Router Approvals" />}
           </NavSection>
         )}
@@ -107,23 +108,23 @@ export function Sidebar() {
       </nav>
 
       {/* User footer */}
-      <div className="p-3 shrink-0 border-t border-sidebar-border bg-sidebar">
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors">
-          <NavLink to="/profile" className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-[11px] shrink-0 hover:opacity-90 shadow-sm">
+      <div className="p-3 shrink-0 border-t border-slate-200 bg-white">
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-100">
+          <NavLink to="/profile" className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-[11px] shrink-0 hover:opacity-90 shadow-2xs">
             {initials}
           </NavLink>
           <div className="flex-1 min-w-0">
-            <NavLink to="/profile" className="text-sidebar-foreground text-[12px] font-semibold truncate block hover:underline">
+            <NavLink to="/profile" className="text-slate-900 text-[12px] font-semibold truncate block hover:underline">
               {user?.full_name || user?.username}
             </NavLink>
-            <div className="text-muted-foreground text-[9.5px] uppercase tracking-wider font-mono">
+            <div className="text-slate-400 text-[9.5px] uppercase tracking-wider font-mono">
               {user?.profile.role.name.replace(/_/g, ' ')}
             </div>
           </div>
           <button
             onClick={handleLogout}
             title="Logout"
-            className="text-muted-foreground hover:text-critical transition-colors p-1"
+            className="text-slate-400 hover:text-rose-600 transition-colors p-1.5 rounded-md hover:bg-white"
           >
             <LogOut className="h-4 w-4" />
           </button>
@@ -136,7 +137,7 @@ export function Sidebar() {
 function NavSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="px-2 pb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
+      <p className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
         {label}
       </p>
       <ul className="space-y-0.5">
@@ -154,10 +155,10 @@ function NavItem({ to, icon: Icon, label }: NavItemProps) {
         end={to === '/dashboard' || to === '/eb'}
         className={({ isActive }) =>
           cn(
-            "group relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[12px] transition-colors duration-100",
+            "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-all duration-100",
             isActive
-              ? "bg-sidebar-accent font-medium text-foreground"
-              : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+              ? "bg-blue-50 text-blue-700 font-semibold"
+              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
           )
         }
       >
@@ -166,7 +167,7 @@ function NavItem({ to, icon: Icon, label }: NavItemProps) {
             {isActive && (
               <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
             )}
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-600")} />
             <span className="truncate">{label}</span>
           </>
         )}

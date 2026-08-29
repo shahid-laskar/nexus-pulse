@@ -98,7 +98,7 @@ export function PendingRegistrationsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
+    <div className="min-h-screen bg-slate-50">
       <PageHeader
         title="Pending Registrations Queue"
         subtitle="Review, approve, or reject user self-registration requests from captive portal instances."
@@ -118,11 +118,11 @@ export function PendingRegistrationsPage() {
         }
       />
 
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="p-6 lg:p-8 space-y-6 max-w-[1680px]">
         {/* Filter bar & Stats */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-4 rounded-xl border border-hairline shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
           <div className="flex items-center gap-3 flex-wrap">
-            <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Filter by Customer:
             </label>
             <select
@@ -131,7 +131,7 @@ export function PendingRegistrationsPage() {
                 const val = e.target.value ? Number(e.target.value) : undefined
                 setSelectedCustomerId(val)
               }}
-              className="text-xs border border-hairline rounded-lg px-3 py-2 bg-surface text-foreground font-medium outline-none focus:border-primary min-w-[260px]"
+              className="h-8 text-xs border border-slate-200 rounded-lg px-3 bg-white text-slate-700 font-medium outline-none focus:ring-1 focus:ring-primary min-w-[260px]"
             >
               <option value="">All Provisioned Customers ({pushedCustomers.length})</option>
               {pushedCustomers.map((c) => (
@@ -143,113 +143,127 @@ export function PendingRegistrationsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Pending Queue:</span>
-            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-warn-soft text-warn font-mono">
+            <span className="text-xs text-slate-500 font-medium">Pending Queue:</span>
+            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 font-mono">
               {requests.length} awaiting review
             </span>
           </div>
         </div>
 
         {/* Requests Table */}
-        {isLoading ? (
-          <PageLoader />
-        ) : isError ? (
-          <Card>
-            <CardBody className="text-sm text-red-600">
-              {extractErrorMessage(error, 'Failed to fetch pending registrations queue.')}
-            </CardBody>
-          </Card>
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>ID</Th>
-                <Th>Applicant Phone & Name</Th>
-                <Th>Customer / Tenant</Th>
-                <Th>Submitted</Th>
-                <Th>Status</Th>
-                <Th>Details</Th>
-                <Th>Actions</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {!requests.length ? (
-                <EmptyRow cols={7} message="No pending registration requests waiting for approval." />
-              ) : (
-                requests.map((r) => (
-                  <tr key={`${r.customer_id || 0}-${r.id}`} className="hover:bg-slate-50 text-sm">
-                    <Td className="font-mono text-xs text-muted-foreground">#{r.id}</Td>
-                    <Td>
-                      <div className="font-mono font-semibold text-foreground">{r.phone}</div>
-                      <div className="text-xs text-muted-foreground">{r.name || '—'}</div>
-                    </Td>
-                    <Td>
-                      <div className="font-medium text-foreground">{r.customer_name || `Customer #${r.customer_id}`}</div>
-                      {r.customer_slug && (
-                        <span className="font-mono text-[11px] text-muted-foreground">
-                          {r.customer_slug}
-                        </span>
-                      )}
-                    </Td>
-                    <Td className="whitespace-nowrap text-xs text-muted-foreground">
-                      {r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '—'}
-                      {r.age_hours != null && (
-                        <span className="block text-[11px] font-mono text-amber-600">
-                          {r.age_hours === 0 ? 'Just now' : `${r.age_hours}h ago`}
-                        </span>
-                      )}
-                    </Td>
-                    <Td>
-                      <Badge label="PENDING APPROVAL" variant="warning" />
-                    </Td>
-                    <Td>
-                      <Button
-                        size="xs"
-                        variant="secondary"
-                        onClick={() => setInspectingItem(r)}
-                        className="flex items-center gap-1"
-                      >
-                        <Info className="h-3 w-3" />
-                        View Data
-                      </Button>
-                    </Td>
-                    <Td>
-                      <div className="flex gap-2">
-                        <Button
-                          size="xs"
-                          onClick={() => setApprovingItem(r)}
-                          className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="xs"
-                          variant="danger"
-                          onClick={() => handleOpenReject(r)}
-                          className="flex items-center gap-1"
-                        >
-                          <XCircle className="h-3 w-3" />
-                          Reject
-                        </Button>
-                      </div>
-                    </Td>
+        <Card className="border-slate-200 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-amber-50 text-amber-600">
+                <UserCheck className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">Registration Queue ({requests.length})</h3>
+                <p className="text-[11px] text-slate-500">Awaiting NOC verification and OTP issuance</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardBody className="p-0">
+            {isLoading ? (
+              <PageLoader />
+            ) : isError ? (
+              <div className="p-8 text-center text-rose-600 text-xs">
+                {extractErrorMessage(error, 'Failed to fetch pending registrations queue.')}
+              </div>
+            ) : (
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>ID</Th>
+                    <Th>Applicant Phone &amp; Name</Th>
+                    <Th>Customer / Tenant</Th>
+                    <Th>Submitted</Th>
+                    <Th>Status</Th>
+                    <Th>Details</Th>
+                    <Th className="text-right">Actions</Th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </Table>
-        )}
+                </thead>
+                <tbody>
+                  {!requests.length ? (
+                    <EmptyRow cols={7} message="No pending registration requests waiting for approval." />
+                  ) : (
+                    requests.map((r) => (
+                      <tr key={`${r.customer_id || 0}-${r.id}`} className="hover:bg-slate-50/70 transition-colors">
+                        <Td className="font-mono text-xs text-slate-400">#{r.id}</Td>
+                        <Td>
+                          <div className="font-mono font-bold text-slate-900 text-xs">{r.phone}</div>
+                          <div className="text-[11px] text-slate-500">{r.name || '—'}</div>
+                        </Td>
+                        <Td>
+                          <div className="font-semibold text-slate-900 text-xs">{r.customer_name || `Customer #${r.customer_id}`}</div>
+                          {r.customer_slug && (
+                            <span className="font-mono text-[11px] text-slate-400">
+                              {r.customer_slug}
+                            </span>
+                          )}
+                        </Td>
+                        <Td className="whitespace-nowrap text-xs text-slate-500">
+                          {r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '—'}
+                          {r.age_hours != null && (
+                            <span className="block text-[11px] font-mono text-amber-600 font-medium">
+                              {r.age_hours === 0 ? 'Just now' : `${r.age_hours}h ago`}
+                            </span>
+                          )}
+                        </Td>
+                        <Td>
+                          <Badge label="PENDING" variant="warning" />
+                        </Td>
+                        <Td>
+                          <Button
+                            size="xs"
+                            variant="secondary"
+                            onClick={() => setInspectingItem(r)}
+                            className="flex items-center gap-1 h-7 text-xs"
+                          >
+                            <Info className="h-3 w-3" />
+                            View Data
+                          </Button>
+                        </Td>
+                        <Td className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="xs"
+                              variant="primary"
+                              onClick={() => setApprovingItem(r)}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 h-7 text-xs"
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="danger"
+                              onClick={() => handleOpenReject(r)}
+                              className="flex items-center gap-1 h-7 text-xs"
+                            >
+                              <XCircle className="h-3 w-3" />
+                              Reject
+                            </Button>
+                          </div>
+                        </Td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </Table>
+            )}
+          </CardBody>
+        </Card>
       </div>
 
       {/* Detail Inspection Modal */}
       {inspectingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface rounded-xl p-6 max-w-lg w-full shadow-2xl border border-hairline animate-in fade-in zoom-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-base font-bold text-foreground">Applicant Registration Details</h3>
-                <p className="text-xs text-muted-foreground font-mono">Request #{inspectingItem.id} · {inspectingItem.phone}</p>
+                <h3 className="text-base font-bold text-slate-900">Applicant Registration Details</h3>
+                <p className="text-xs text-slate-500 font-mono">Request #{inspectingItem.id} · {inspectingItem.phone}</p>
               </div>
               <Button size="xs" variant="secondary" onClick={() => setInspectingItem(null)}>
                 ✕
@@ -257,27 +271,27 @@ export function PendingRegistrationsPage() {
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2 bg-surface-2 p-3 rounded-lg border border-hairline">
+              <div className="grid grid-cols-2 gap-2 bg-slate-100 p-3 rounded-lg border border-slate-200">
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">Applicant Name</span>
-                  <span className="font-semibold text-foreground">{inspectingItem.name || '—'}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Applicant Name</span>
+                  <span className="font-semibold text-slate-900">{inspectingItem.name || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">Phone Number</span>
-                  <span className="font-mono font-semibold text-foreground">{inspectingItem.phone}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Phone Number</span>
+                  <span className="font-mono font-semibold text-slate-900">{inspectingItem.phone}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">IP Address</span>
-                  <span className="font-mono text-foreground">{inspectingItem.ip_address || '—'}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">IP Address</span>
+                  <span className="font-mono text-slate-900">{inspectingItem.ip_address || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase font-bold">Tenant</span>
-                  <span className="font-semibold text-foreground">{inspectingItem.customer_name || `Customer #${inspectingItem.customer_id}`}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Tenant</span>
+                  <span className="font-semibold text-slate-900">{inspectingItem.customer_name || `Customer #${inspectingItem.customer_id}`}</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1 block">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 block">
                   Custom Form Data
                 </span>
                 {inspectingItem.registration_data && Object.keys(inspectingItem.registration_data).length > 0 ? (
@@ -285,19 +299,19 @@ export function PendingRegistrationsPage() {
                     {JSON.stringify(inspectingItem.registration_data, null, 2)}
                   </pre>
                 ) : (
-                  <p className="text-muted-foreground italic">No custom fields submitted.</p>
+                  <p className="text-slate-500 italic">No custom fields submitted.</p>
                 )}
               </div>
 
               {inspectingItem.user_agent && (
                 <div>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase block">User Agent</span>
-                  <p className="font-mono text-[10.5px] text-muted-foreground truncate">{inspectingItem.user_agent}</p>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">User Agent</span>
+                  <p className="font-mono text-[10.5px] text-slate-500 truncate">{inspectingItem.user_agent}</p>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t border-hairline mt-4">
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 mt-4">
               <Button size="sm" variant="secondary" onClick={() => setInspectingItem(null)}>
                 Close
               </Button>
@@ -323,11 +337,11 @@ export function PendingRegistrationsPage() {
         title="Approve User Registration?"
         description={
           approvingItem ? (
-            <div className="space-y-2 text-sm text-foreground">
+            <div className="space-y-2 text-sm text-slate-900">
               <p>
                 Are you sure you want to approve registration for <strong>{approvingItem.name || approvingItem.phone}</strong>?
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 This will create a live captive portal account in customer <strong>{approvingItem.customer_name || `#${approvingItem.customer_id}`}</strong> and generate an approval OTP.
               </p>
             </div>
@@ -342,16 +356,16 @@ export function PendingRegistrationsPage() {
 
       {/* Reject Modal with Reason Input */}
       {rejectingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface rounded-xl p-6 max-w-md w-full shadow-2xl border border-hairline animate-in fade-in zoom-in duration-150">
-            <h3 className="text-base font-bold text-foreground mb-1">Reject Registration</h3>
-            <p className="text-xs text-muted-foreground mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-base font-bold text-slate-900 mb-1">Reject Registration</h3>
+            <p className="text-xs text-slate-500 mb-4">
               Reject registration for <strong>{rejectingItem.name || rejectingItem.phone}</strong> (Request #{rejectingItem.id}).
             </p>
 
             <form onSubmit={handleRejectSubmit} className="space-y-4">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   Rejection Reason (Minimum 10 characters) <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -360,9 +374,9 @@ export function PendingRegistrationsPage() {
                   placeholder="e.g. Employee ID not found in department directory."
                   rows={3}
                   required
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-hairline bg-surface text-foreground outline-none focus:border-critical"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-900 outline-none focus:border-critical"
                 />
-                <span className="text-[10.5px] text-muted-foreground">
+                <span className="text-[10.5px] text-slate-500">
                   {rejectionReason.length}/10 characters minimum
                 </span>
               </div>

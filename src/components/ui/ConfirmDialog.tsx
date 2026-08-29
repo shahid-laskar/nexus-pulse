@@ -29,9 +29,9 @@ export function ConfirmDialog({
   const confirmVariant = variant === 'danger' ? 'danger' : 'primary'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
       <div
-        className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200"
+        className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150"
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
@@ -41,11 +41,11 @@ export function ConfirmDialog({
             {title}
           </h3>
           <div className="text-sm text-slate-600 mb-6">{description}</div>
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={onClose} disabled={isLoading}>
+          <div className="flex justify-end gap-2.5">
+            <Button variant="secondary" size="sm" onClick={onClose} disabled={isLoading}>
               {cancelText}
             </Button>
-            <Button variant={confirmVariant} onClick={onConfirm} isLoading={isLoading}>
+            <Button variant={confirmVariant} size="sm" onClick={onConfirm} isLoading={isLoading}>
               {confirmText}
             </Button>
           </div>

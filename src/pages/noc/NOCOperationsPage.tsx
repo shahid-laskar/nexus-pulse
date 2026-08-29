@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -17,10 +17,15 @@ import {
   Play,
   Square,
   ShieldAlert,
+  ShieldCheck,
   ArrowUpRight,
   Radio,
   Cpu,
   Sliders,
+  Search,
+  Network,
+  Layers,
+  ExternalLink,
 } from 'lucide-react'
 
 import { customersApi } from '@/api/master-data'
@@ -35,9 +40,11 @@ import { TelemetryPendingCard } from '@/components/noc/TelemetryPendingCard'
 import { StatusBadge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
 import { PageLoader } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { RouterTopologyModal } from '@/components/noc/RouterTopologyModal'
 import type { InstanceRead, CustomerRead } from '@/types'
 
 function formatAge(dateStr?: string | null): string {
@@ -104,19 +111,19 @@ function LiveVerdict({
       : `Network nominal — all ${totalInstances} edge router instance(s) online & healthy`
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-hairline bg-surface px-4 py-3 shadow-2xs">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-slate-200 bg-white px-4 py-3 shadow-2xs">
       <div className="flex items-center gap-3">
         <span
           className={cn(
             'grid h-9 w-9 place-items-center rounded-full',
-            isCritical ? 'bg-critical-soft text-critical' : isWarn ? 'bg-warn-soft text-warn' : 'bg-healthy-soft text-healthy'
+            isCritical ? 'bg-rose-50 text-rose-600' : isWarn ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
           )}
         >
           {isCritical ? <Siren className="h-4 w-4" /> : isWarn ? <AlertTriangle className="h-4 w-4" /> : <CircleCheck className="h-4 w-4" />}
         </span>
         <div>
-          <p className="text-[14.5px] font-semibold tracking-tight text-foreground">{sentence}</p>
-          <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+          <p className="text-[14.5px] font-semibold tracking-tight text-slate-900">{sentence}</p>
+          <p className="mt-0.5 text-[11.5px] text-slate-500">
             {unackedCount} unacknowledged alerts · {onlineCount}/{totalInstances} active probes online · {readyCount} provisioning jobs in queue
           </p>
         </div>
@@ -125,7 +132,7 @@ function LiveVerdict({
         <button
           onClick={onRunHealthCheck}
           disabled={isHealthChecking}
-          className="rounded-md border border-hairline bg-surface px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-accent disabled:opacity-50 flex items-center gap-1.5"
+          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-accent disabled:opacity-50 flex items-center gap-1.5"
         >
           <RefreshCw className={cn('w-3.5 h-3.5', isHealthChecking && 'animate-spin')} />
           {isHealthChecking ? 'Probing Routers...' : 'Run Health Check'}
@@ -171,12 +178,12 @@ function LiveAlertStream({ alerts, isLoading }: { alerts: any[]; isLoading: bool
       bodyClassName="p-0"
     >
       {isLoading ? (
-        <div className="p-6 text-center text-xs text-muted-foreground">Loading alert stream...</div>
+        <div className="p-6 text-center text-xs text-slate-500">Loading alert stream...</div>
       ) : displayAlerts.length === 0 ? (
-        <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center">
+        <div className="p-8 text-center text-xs text-slate-500 flex flex-col items-center justify-center">
           <CircleCheck className="w-8 h-8 text-healthy mb-2 opacity-80" />
-          <p className="font-medium text-foreground">No active unacknowledged alerts</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">All router alarm thresholds operating nominally.</p>
+          <p className="font-medium text-slate-900">No active unacknowledged alerts</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">All router alarm thresholds operating nominally.</p>
         </div>
       ) : (
         <ul className="divide-y divide-hairline h-[240px] overflow-y-auto">
@@ -190,18 +197,18 @@ function LiveAlertStream({ alerts, isLoading }: { alerts: any[]; isLoading: bool
                 <StatusDot status={sev} pulse={sev === 'critical'} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-[10.5px] text-muted-foreground">#{alert.id}</span>
-                    <span className="truncate text-[12.5px] font-medium text-foreground">{alert.title}</span>
+                    <span className="font-mono text-[10.5px] text-slate-500">#{alert.id}</span>
+                    <span className="truncate text-[12.5px] font-medium text-slate-900">{alert.title}</span>
                     {alert.instance_id && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-2 text-muted-foreground">
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-500">
                         Inst #{alert.instance_id}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11.5px] text-muted-foreground mt-0.5 line-clamp-1">
+                  <p className="text-[11.5px] text-slate-500 mt-0.5 line-clamp-1">
                     {alert.message}
                   </p>
-                  <div className="mt-1 flex items-center gap-3 text-[10.5px] text-muted-foreground">
+                  <div className="mt-1 flex items-center gap-3 text-[10.5px] text-slate-500">
                     <span className="font-mono">{alert.source || 'VyOS'}</span>
                     <span>{formatAge(alert.created_at)}</span>
                   </div>
@@ -211,7 +218,7 @@ function LiveAlertStream({ alerts, isLoading }: { alerts: any[]; isLoading: bool
                   <button
                     onClick={() => ackMutation.mutate(alert.id)}
                     disabled={ackMutation.isPending}
-                    className="rounded-md border border-hairline bg-surface px-2 py-1 text-[11px] font-medium transition-colors hover:bg-accent"
+                    className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium transition-colors hover:bg-accent"
                   >
                     Ack
                   </button>
@@ -283,7 +290,7 @@ function LiveLogStream() {
             onClick={() => setIsLive(!isLive)}
             className={cn(
               'px-2 py-0.5 rounded text-[11px] font-medium flex items-center gap-1 border transition-colors',
-              isLive ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-surface-2 text-muted-foreground border-hairline'
+              isLive ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-slate-100 text-slate-500 border-slate-200'
             )}
           >
             {isLive ? <Square className="w-2.5 h-2.5 fill-current" /> : <Play className="w-2.5 h-2.5 fill-current" />}
@@ -299,15 +306,15 @@ function LiveLogStream() {
       }
       bodyClassName="p-0"
     >
-      <div className="p-2 border-b border-hairline bg-surface-2/40 flex items-center gap-2 text-xs">
-        <Terminal className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+      <div className="p-2 border-b border-slate-200 bg-slate-50 flex items-center gap-2 text-xs">
+        <Terminal className="w-3.5 h-3.5 text-slate-500 shrink-0" />
         <select
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
             fetchLogs(e.target.value)
           }}
-          className="bg-transparent font-mono text-[11px] text-foreground focus:outline-none cursor-pointer flex-1"
+          className="bg-transparent font-mono text-[11px] text-slate-900 focus:outline-none cursor-pointer flex-1"
         >
           <option value='{job="captive-portal"}'>Job: captive-portal</option>
           <option value='{job="captive-portal"} |= "ERROR"'>Job: captive-portal (Errors Only)</option>
@@ -316,7 +323,7 @@ function LiveLogStream() {
         </select>
         <button
           onClick={() => fetchLogs(query)}
-          className="text-muted-foreground hover:text-foreground p-1"
+          className="text-slate-500 hover:text-slate-900 p-1"
           title="Refresh logs"
         >
           <RefreshCw className={cn('w-3 h-3', loading && 'animate-spin')} />
@@ -362,7 +369,7 @@ function LiveInstancesTable({ instances, loading }: { instances: InstanceRead[];
   if (!instances?.length) {
     return (
       <Card>
-        <CardBody className="text-sm text-muted-foreground p-6 text-center">
+        <CardBody className="text-sm text-slate-500 p-6 text-center">
           No router instances configured.
         </CardBody>
       </Card>
@@ -394,28 +401,28 @@ function InstanceHealthCard({ instance }: { instance: InstanceRead }) {
         isOnline ? 'border-l-healthy' : isError ? 'border-l-critical' : 'border-l-warn'
       )}
     >
-      <CardBody className="p-4 bg-surface">
+      <CardBody className="p-4 bg-white">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-bold text-foreground text-sm flex items-center gap-2">
+          <span className="font-bold text-slate-900 text-sm flex items-center gap-2">
             <StatusDot status={isOnline ? 'healthy' : isError ? 'critical' : 'warn'} />
             {instance.name || `Router #${instance.id}`}
           </span>
           <span
             className={cn(
-              'text-[10.5px] font-mono px-1.5 py-0.5 rounded font-semibold',
-              isOnline ? 'bg-healthy-soft text-healthy' : 'bg-critical-soft text-critical'
+              'text-[10.5px] font-mono px-2 py-0.5 rounded-md font-semibold',
+              isOnline ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
             )}
           >
             {isLoading ? 'Checking...' : isOnline ? 'ONLINE' : 'OFFLINE'}
           </span>
         </div>
-        <div className="text-[11.5px] text-muted-foreground space-y-1 font-mono">
-          <div>Host IP: <span className="text-foreground">{instance.host || '—'}</span></div>
+        <div className="text-[11.5px] text-slate-500 space-y-1 font-mono">
+          <div>Host IP: <span className="text-slate-900">{instance.network?.vyos_ip || instance.host || '—'}</span></div>
           {health?.latency_ms != null && (
-            <div>Latency: <span className="text-foreground font-semibold">{health.latency_ms}ms</span></div>
+            <div>Latency: <span className="text-slate-900 font-semibold">{health.latency_ms}ms</span></div>
           )}
           {instance.network?.wan_interface && (
-            <div>WAN Intf: <span className="text-foreground">{instance.network.wan_interface}</span></div>
+            <div>WAN Intf: <span className="text-slate-900">{instance.network.wan_interface}</span></div>
           )}
         </div>
       </CardBody>
@@ -430,6 +437,14 @@ export function NOCOperationsPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [selectedCustomerForDeboard, setSelectedCustomerForDeboard] = useState<CustomerRead | null>(null)
+
+  // Search & Filter state for provisioned tenants
+  const [searchTenant, setSearchTenant] = useState('')
+  const [instanceFilter, setInstanceFilter] = useState<string>('ALL')
+
+  // Topology inspection modal state
+  const [isTopologyModalOpen, setIsTopologyModalOpen] = useState(false)
+  const [selectedTopologyInstanceId, setSelectedTopologyInstanceId] = useState<number | null>(null)
 
   // 1. Fetch Instances
   const { data: instances = [], isLoading: loadingInstances } = useQuery({
@@ -498,8 +513,26 @@ export function NOCOperationsPage() {
   })
 
   const customers = customersData?.customers ?? []
-  const ready     = customers.filter((c) => c.status === 'READY')
+  const ready     = customers.filter((c) => c.status === 'READY' || c.status === 'NETWORK_CONFIGURED')
   const pushed    = customers.filter((c) => c.status === 'PUSHED' || c.status === 'ACTIVE')
+
+  const filteredPushed = useMemo(() => {
+    return pushed.filter((c) => {
+      if (instanceFilter !== 'ALL') {
+        const instId = Number(instanceFilter)
+        if (c.captive_instance_id !== instId) return false
+      }
+      if (!searchTenant) return true
+      const q = searchTenant.toLowerCase()
+      return (
+        c.company_name.toLowerCase().includes(q) ||
+        (c.captive_customer_slug && c.captive_customer_slug.toLowerCase().includes(q)) ||
+        (c.subnet_cidr && c.subnet_cidr.toLowerCase().includes(q)) ||
+        (c.user_account && c.user_account.toLowerCase().includes(q)) ||
+        (c.gateway_ip && c.gateway_ip.toLowerCase().includes(q))
+      )
+    })
+  }, [pushed, instanceFilter, searchTenant])
 
   const unackedAlerts = alerts.filter((a) => a.status !== 'ACKNOWLEDGED')
   const criticalAlerts = unackedAlerts.filter((a) => mapSeverity(a.severity) === 'critical')
@@ -508,7 +541,7 @@ export function NOCOperationsPage() {
   const isLoading = loadingInstances || loadingCustomers
 
   return (
-    <div className="mx-auto max-w-[1680px]">
+    <div className="min-h-screen bg-slate-50">
       <PageHeader
         title="NOC Real-Time Operations"
         subtitle="Live router health probes, alarm streams, syslog explorer & active tenant session management"
@@ -530,7 +563,7 @@ export function NOCOperationsPage() {
         }
       />
 
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="p-6 lg:p-8 space-y-6 max-w-[1680px]">
         {/* Live Network Status Banner */}
         <LiveVerdict
           onlineCount={onlineInstances.length}
@@ -544,55 +577,55 @@ export function NOCOperationsPage() {
 
         {/* Real Data KPI Counters */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <div className="p-4 rounded-xl border border-hairline bg-surface shadow-2xs">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
               Active Routers
               <Server className="w-3.5 h-3.5 text-primary" />
             </div>
-            <div className="text-2xl font-bold mt-1 text-foreground">
-              {onlineInstances.length} <span className="text-xs font-normal text-muted-foreground">/ {instances.length}</span>
+            <div className="text-2xl font-bold mt-1 text-slate-900">
+              {onlineInstances.length} <span className="text-xs font-normal text-slate-500">/ {instances.length}</span>
             </div>
-            <div className="text-[11px] text-muted-foreground mt-1">Live VyOS fleet</div>
+            <div className="text-[11px] text-slate-500 mt-1">Live VyOS fleet</div>
           </div>
 
-          <div className="p-4 rounded-xl border border-hairline bg-surface shadow-2xs">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
               Live Tenants
               <Users className="w-3.5 h-3.5 text-healthy" />
             </div>
             <div className="text-2xl font-bold mt-1 text-healthy">{pushed.length}</div>
-            <div className="text-[11px] text-muted-foreground mt-1">Provisioned on routers</div>
+            <div className="text-[11px] text-slate-500 mt-1">Provisioned on routers</div>
           </div>
 
-          <div className="p-4 rounded-xl border border-hairline bg-surface shadow-2xs">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
               Active Alarms
               <Siren className="w-3.5 h-3.5 text-amber-500" />
             </div>
-            <div className={cn('text-2xl font-bold mt-1', unackedAlerts.length > 0 ? 'text-warn' : 'text-foreground')}>
+            <div className={cn('text-2xl font-bold mt-1', unackedAlerts.length > 0 ? 'text-warn' : 'text-slate-900')}>
               {unackedAlerts.length}
             </div>
-            <div className="text-[11px] text-muted-foreground mt-1">Unacknowledged alerts</div>
+            <div className="text-[11px] text-slate-500 mt-1">Unacknowledged alerts</div>
           </div>
 
-          <div className="p-4 rounded-xl border border-hairline bg-surface shadow-2xs">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
               Critical Faults
               <ShieldAlert className="w-3.5 h-3.5 text-critical" />
             </div>
-            <div className={cn('text-2xl font-bold mt-1', criticalAlerts.length > 0 ? 'text-critical animate-pulse' : 'text-foreground')}>
+            <div className={cn('text-2xl font-bold mt-1', criticalAlerts.length > 0 ? 'text-critical animate-pulse' : 'text-slate-900')}>
               {criticalAlerts.length}
             </div>
-            <div className="text-[11px] text-muted-foreground mt-1">Requiring immediate triage</div>
+            <div className="text-[11px] text-slate-500 mt-1">Requiring immediate triage</div>
           </div>
 
-          <div className="p-4 rounded-xl border border-hairline bg-surface shadow-2xs">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
               Staging Queue
               <Clock className="w-3.5 h-3.5 text-primary" />
             </div>
-            <div className="text-2xl font-bold mt-1 text-foreground">{ready.length}</div>
-            <div className="text-[11px] text-muted-foreground mt-1">Awaiting onboarding</div>
+            <div className="text-2xl font-bold mt-1 text-slate-900">{ready.length}</div>
+            <div className="text-[11px] text-slate-500 mt-1">Awaiting onboarding</div>
           </div>
         </div>
 
@@ -631,90 +664,194 @@ export function NOCOperationsPage() {
 
         {/* Provisioned Tenants & Operational Session Controls */}
         <Panel
-          title="Provisioned Tenants & Operational Controls"
-          description="Manage active tenants and direct active session diagnostics"
-          actions={
-            <Link to="/noc/sessions" className="text-xs font-semibold text-primary hover:underline">
-              Open All Sessions →
-            </Link>
-          }
-          bodyClassName="p-0"
-        >
-          {isLoading ? (
-            <div className="p-8"><PageLoader /></div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm text-left">
-                <thead>
-                  <tr className="bg-surface-2">
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">
-                      Company
-                    </th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">
-                      Captive Slug
-                    </th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">
-                      Instance
-                    </th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider text-right">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline">
-                  {!pushed.length ? (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                        No provisioned tenants found
-                      </td>
-                    </tr>
-                  ) : (
-                    pushed.map((c) => (
-                      <tr key={c.id} className="hover:bg-accent/40 transition-colors">
-                        <td className="px-4 py-3">
-                          <Link to={`/customers/${c.id}`} className="font-medium text-foreground hover:underline">
-                            {c.company_name}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={c.status} />
-                        </td>
-                        <td className="px-4 py-3">
-                          {c.captive_customer_slug ? (
-                            <code className="text-[11px] bg-surface-2 text-foreground px-1.5 py-0.5 rounded border border-hairline font-mono">
-                              {c.captive_customer_slug}
-                            </code>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-[11.5px] text-muted-foreground">
-                          {c.captive_instance_id ? `Inst #${c.captive_instance_id}` : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2 flex-wrap">
-                            <Link to={`/noc/customers/${c.id}/sessions`}>
-                              <button className="rounded-md border border-hairline bg-surface px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-accent">
-                                Session Diagnostics
-                              </button>
-                            </Link>
-                            <button
-                              className="rounded-md border border-critical-soft bg-critical/10 text-critical px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-critical/20"
-                              onClick={() => setSelectedCustomerForDeboard(c)}
-                            >
-                              Deboard
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+          title={
+            <div className="flex items-center gap-2.5">
+              <span>Provisioned Tenants & Operational Session Controls</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                {pushed.length} Live Tenants
+              </span>
             </div>
+          }
+          description="Manage active tenants across the router fleet, inspect VLAN & IP topology, and access session diagnostics"
+          actions={
+            <div className="flex items-center gap-3">
+              <Link
+                to="/noc/provisioning"
+                className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+              >
+                Provisioning Queue ({ready.length}) <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+              <span className="text-slate-300">|</span>
+              <Link
+                to="/noc/sessions"
+                className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+              >
+                Open All Sessions <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          }
+          bodyClassName="p-4 space-y-4"
+        >
+          {/* Search & Filter Strip */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/70 p-2.5 rounded-xl border border-slate-200/80">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search tenant, slug, subnet..."
+                value={searchTenant}
+                onChange={(e) => setSearchTenant(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-white rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-slate-400"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <span className="text-[11px] font-medium text-slate-500">Router Filter:</span>
+              <select
+                value={instanceFilter}
+                onChange={(e) => setInstanceFilter(e.target.value)}
+                className="text-xs bg-white rounded-lg border border-slate-200 py-1.5 px-2.5 font-medium text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">All Routers ({pushed.length})</option>
+                {instances.map((inst) => {
+                  const instId = inst.instance_id || inst.id
+                  const count = pushed.filter((c) => c.captive_instance_id === instId).length
+                  return (
+                    <option key={inst.id} value={String(instId)}>
+                      {inst.name || `Router #${inst.id}`} ({count})
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="py-12"><PageLoader /></div>
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Tenant / Company</Th>
+                  <Th>Status</Th>
+                  <Th>Router Gateway & Interface</Th>
+                  <Th>CVLAN & Subnet</Th>
+                  <Th>Bandwidth Limit</Th>
+                  <Th className="text-right">Actions</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPushed.length === 0 ? (
+                  <EmptyRow
+                    cols={6}
+                    message={
+                      searchTenant || instanceFilter !== 'ALL'
+                        ? 'No provisioned tenants match your search filter.'
+                        : 'No provisioned tenants active on the fleet yet.'
+                    }
+                  />
+                ) : (
+                  filteredPushed.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                      <Td className="font-semibold text-slate-900 text-xs">
+                        <Link to={`/customers/${c.id}`} className="hover:text-blue-600 hover:underline">
+                          {c.company_name}
+                        </Link>
+                        <div className="flex items-center gap-2 mt-0.5 font-normal text-[11px] text-slate-500">
+                          <span className="font-mono">ID #{c.id}</span>
+                          {c.captive_customer_slug && (
+                            <>
+                              <span>•</span>
+                              <code className="text-[10.5px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                {c.captive_customer_slug}
+                              </code>
+                            </>
+                          )}
+                        </div>
+                      </Td>
+                      <Td>
+                        <StatusBadge status={c.status} />
+                      </Td>
+                      <Td>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-xs text-slate-800">
+                            {c.captive_instance_id ? `Router #${c.captive_instance_id}` : '—'}
+                          </span>
+                          {c.captive_instance_id && (
+                            <button
+                              onClick={() => {
+                                setSelectedTopologyInstanceId(c.captive_instance_id)
+                                setIsTopologyModalOpen(true)
+                              }}
+                              className="text-[10.5px] text-blue-600 hover:text-blue-800 underline font-medium"
+                              title="View Router Topology"
+                            >
+                              (Topology)
+                            </button>
+                          )}
+                        </div>
+                        <div className="font-mono text-[11px] text-slate-500 mt-0.5">
+                          {c.qinq_interface ? `${c.qinq_interface}.${c.svlan || 100}.${c.cvlan || '—'}` : '—'}
+                        </div>
+                      </Td>
+                      <Td>
+                        <div className="font-mono text-xs font-semibold text-slate-900">
+                          {c.subnet_cidr || '—'}
+                        </div>
+                        <div className="font-mono text-[10.5px] text-slate-500 mt-0.5">
+                          CVLAN: <strong className="text-teal-700 font-bold">{c.cvlan ?? '—'}</strong>
+                          {c.gateway_ip && ` • GW: ${c.gateway_ip}`}
+                        </div>
+                      </Td>
+                      <Td>
+                        <span className="font-mono text-xs text-slate-700">
+                          {c.max_bandwidth || '50mbit'}
+                        </span>
+                        <div className="text-[10.5px] text-slate-400 capitalize">
+                          {c.qos_mode || 'per_user'}
+                        </div>
+                      </Td>
+                      <Td className="text-right">
+                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                          <Link to={`/noc/customers/${c.id}/sessions`}>
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              className="h-7 text-[11px] gap-1 text-slate-700 hover:text-blue-700"
+                            >
+                              <Wifi className="h-3 w-3 text-blue-600" />
+                              Diagnostics
+                            </Button>
+                          </Link>
+                          {c.captive_instance_id && (
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              className="h-7 text-[11px] gap-1 text-slate-700 hover:text-indigo-700"
+                              onClick={() => {
+                                setSelectedTopologyInstanceId(c.captive_instance_id)
+                                setIsTopologyModalOpen(true)
+                              }}
+                            >
+                              <Network className="h-3 w-3 text-indigo-600" />
+                              Topology
+                            </Button>
+                          )}
+                          <Button
+                            variant="danger"
+                            size="xs"
+                            className="h-7 text-[11px] gap-1"
+                            onClick={() => setSelectedCustomerForDeboard(c)}
+                          >
+                            Deboard
+                          </Button>
+                        </div>
+                      </Td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </Table>
           )}
         </Panel>
       </div>
@@ -729,6 +866,16 @@ export function NOCOperationsPage() {
         isLoading={deboard.isPending}
         onConfirm={() => selectedCustomerForDeboard && deboard.mutate(selectedCustomerForDeboard.id)}
         onClose={() => setSelectedCustomerForDeboard(null)}
+      />
+
+      {/* Router Topology Modal Inspector */}
+      <RouterTopologyModal
+        instanceId={selectedTopologyInstanceId}
+        isOpen={isTopologyModalOpen}
+        onClose={() => {
+          setIsTopologyModalOpen(false)
+          setSelectedTopologyInstanceId(null)
+        }}
       />
     </div>
   )

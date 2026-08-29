@@ -81,30 +81,30 @@ function AllocateSvlanModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
         <div className="p-6">
           <h3 className="text-lg font-bold text-slate-900 mb-1">
             Allocate SVLAN — {ba.name} ({ba.code})
           </h3>
-          <p className="text-xs text-muted-foreground mb-3">
+          <p className="text-xs text-slate-500 mb-3">
             Parent Circle: <strong>{ba.circle.name} ({ba.circle.code})</strong>
           </p>
 
           {/* Hint text showing circle pools */}
-          <div className="p-3 bg-surface-2 border border-hairline rounded text-xs mb-4">
-            <span className="font-semibold text-foreground block mb-1">Circle Allowed Ranges:</span>
+          <div className="p-3 bg-slate-100 border border-slate-200 rounded text-xs mb-4">
+            <span className="font-semibold text-slate-900 block mb-1">Circle Allowed Ranges:</span>
             {loadingPools ? (
-              <span className="text-muted-foreground">Loading circle pools...</span>
+              <span className="text-slate-500">Loading circle pools...</span>
             ) : !circlePools?.length ? (
               <span className="text-amber-600">
                 ⚠️ No VLAN pools defined for circle {ba.circle.code}. Please add a pool in Circles first.
               </span>
             ) : (
-              <ul className="list-disc list-inside text-muted-foreground space-y-0.5 font-mono">
+              <ul className="list-disc list-inside text-slate-500 space-y-0.5 font-mono">
                 {circlePools.map(p => (
                   <li key={p.id}>
-                    SVLAN: <strong className="text-foreground">{p.svlan_range_start}–{p.svlan_range_end}</strong> | CVLAN: {p.cvlan_range_start}–{p.cvlan_range_end}
+                    SVLAN: <strong className="text-slate-900">{p.svlan_range_start}–{p.svlan_range_end}</strong> | CVLAN: {p.cvlan_range_start}–{p.cvlan_range_end}
                   </li>
                 ))}
               </ul>
@@ -144,11 +144,11 @@ function AllocateSvlanModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1">Notes</label>
+              <label className="block text-xs font-medium text-slate-900 mb-1">Notes</label>
               <input
                 type="text"
                 placeholder="Optional description or tag"
-                className="w-full text-xs rounded border border-hairline bg-surface-1 px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full text-xs rounded border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary"
                 {...register('notes')}
               />
             </div>
@@ -191,13 +191,13 @@ function BusinessAreaSvlanAllocationsSection({ ba }: { ba: BusinessAreaWithCircl
   })
 
   return (
-    <div className="p-4 bg-surface-1/40 border-t border-hairline rounded-b-md">
+    <div className="p-4 bg-slate-50 border-t border-slate-200 rounded-b-md">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
             SVLAN Allocations for {ba.name} ({ba.code})
           </span>
-          <span className="text-xs text-muted-foreground">({allocations?.length || 0} allocations)</span>
+          <span className="text-xs text-slate-500">({allocations?.length || 0} allocations)</span>
         </div>
         <Button size="xs" variant="primary" onClick={() => setShowAllocModal(true)}>
           ➕ Allocate SVLAN
@@ -209,29 +209,29 @@ function BusinessAreaSvlanAllocationsSection({ ba }: { ba: BusinessAreaWithCircl
           <Spinner className="h-5 w-5" />
         </div>
       ) : !allocations?.length ? (
-        <div className="text-xs text-muted-foreground italic py-2">
+        <div className="text-xs text-slate-500 italic py-2">
           No SVLANs allocated to this Business Area yet. Click &quot;Allocate SVLAN&quot; to assign one from circle pools.
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border border-hairline rounded">
-            <thead className="bg-surface-2">
+          <table className="w-full text-xs text-left border border-slate-200 rounded">
+            <thead className="bg-slate-100">
               <tr>
-                <th className="p-2 border-b border-hairline font-semibold">SVLAN</th>
-                <th className="p-2 border-b border-hairline font-semibold">CVLAN Range</th>
-                <th className="p-2 border-b border-hairline font-semibold">Status</th>
-                <th className="p-2 border-b border-hairline font-semibold">Notes</th>
-                <th className="p-2 border-b border-hairline font-semibold">Created</th>
-                <th className="p-2 border-b border-hairline font-semibold text-right">Actions</th>
+                <th className="p-2 border-b border-slate-200 font-semibold">SVLAN</th>
+                <th className="p-2 border-b border-slate-200 font-semibold">CVLAN Range</th>
+                <th className="p-2 border-b border-slate-200 font-semibold">Status</th>
+                <th className="p-2 border-b border-slate-200 font-semibold">Notes</th>
+                <th className="p-2 border-b border-slate-200 font-semibold">Created</th>
+                <th className="p-2 border-b border-slate-200 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {allocations.map(a => (
-                <tr key={a.id} className="border-b border-hairline hover:bg-surface-2/40">
-                  <td className="p-2 font-mono font-bold text-foreground">
+                <tr key={a.id} className="border-b border-slate-200 hover:bg-slate-50">
+                  <td className="p-2 font-mono font-bold text-slate-900">
                     {a.svlan}
                   </td>
-                  <td className="p-2 font-mono text-muted-foreground">
+                  <td className="p-2 font-mono text-slate-500">
                     {a.cvlan_range_start} – {a.cvlan_range_end}
                   </td>
                   <td className="p-2">
@@ -245,8 +245,8 @@ function BusinessAreaSvlanAllocationsSection({ ba }: { ba: BusinessAreaWithCircl
                       {a.is_exhausted ? 'Exhausted' : 'Available'}
                     </span>
                   </td>
-                  <td className="p-2 text-muted-foreground">{a.notes || '—'}</td>
-                  <td className="p-2 text-muted-foreground">
+                  <td className="p-2 text-slate-500">{a.notes || '—'}</td>
+                  <td className="p-2 text-slate-500">
                     {new Date(a.created_at).toLocaleDateString()}
                   </td>
                   <td className="p-2 text-right">
@@ -331,16 +331,16 @@ export function BusinessAreasPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-50">
       <PageHeader
         title="Business Areas"
         subtitle="BA structure within circles"
       />
-      <div className="p-8 flex flex-col gap-6">
+      <div className="p-6 lg:p-8 space-y-6 max-w-[1680px]">
         {editingBA && (
           <Card className="max-w-md border-amber-200 bg-amber-50/20">
             <CardHeader>
-              <h3 className="font-semibold text-foreground">Edit Business Area: {editingBA.code}</h3>
+              <h3 className="font-semibold text-slate-900">Edit Business Area: {editingBA.code}</h3>
             </CardHeader>
             <CardBody>
               <form
@@ -396,14 +396,14 @@ export function BusinessAreasPage() {
                   const isExpanded = expandedBaId === b.id
                   return (
                     <React.Fragment key={b.id}>
-                      <tr className={`hover:bg-surface-2/50 ${isExpanded ? 'bg-surface-2/30' : ''}`}>
+                      <tr className={`hover:bg-slate-50 ${isExpanded ? 'bg-slate-50' : ''}`}>
                         <Td className="font-semibold">{b.name}</Td>
                         <Td>
-                          <code className="text-xs bg-surface-2 text-foreground border border-hairline px-2 py-0.5 rounded">
+                          <code className="text-xs bg-slate-100 text-slate-900 border border-slate-200 px-2 py-0.5 rounded">
                             {b.code}
                           </code>
                         </Td>
-                        <Td className="text-muted-foreground">{b.circle.name}</Td>
+                        <Td className="text-slate-500">{b.circle.name}</Td>
                         <Td>
                           <button
                             onClick={() =>
@@ -416,13 +416,13 @@ export function BusinessAreasPage() {
                             className={`text-xs font-semibold px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 ${
                               b.is_active
                                 ? 'bg-green-100 text-green-700'
-                                : 'bg-surface-2 text-foreground border border-hairline text-gray-500'
+                                : 'bg-slate-100 text-slate-900 border border-slate-200 text-gray-500'
                             }`}
                           >
                             {b.is_active ? 'Active' : 'Inactive'}
                           </button>
                         </Td>
-                        <Td className="text-muted-foreground text-xs">
+                        <Td className="text-slate-500 text-xs">
                           {new Date(b.created_at).toLocaleDateString()}
                         </Td>
                         <Td>
@@ -444,7 +444,7 @@ export function BusinessAreasPage() {
                       </tr>
                       {isExpanded && isSuper && (
                         <tr>
-                          <td colSpan={6} className="p-0 border-b border-hairline">
+                          <td colSpan={6} className="p-0 border-b border-slate-200">
                             <BusinessAreaSvlanAllocationsSection ba={b} />
                           </td>
                         </tr>

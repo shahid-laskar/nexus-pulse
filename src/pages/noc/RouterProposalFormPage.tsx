@@ -127,6 +127,7 @@ export function RouterProposalFormPage() {
 
   const selectedCircleId = useWatch({ control, name: 'circle_id' })
   const selectedBaId = useWatch({ control, name: 'ba_id' })
+  const selectedSvlanAllocId = useWatch({ control, name: 'svlan_allocation_id' })
 
   // 1. Fetch Circles
   const { data: circles = [] } = useQuery({
@@ -153,11 +154,22 @@ export function RouterProposalFormPage() {
   )
 
   // 3. Fetch SVLAN allocations for selected BA
-  const { data: svlanAllocations = [] } = useQuery({
+  const { data: svlanAllocations = [], isLoading: loadingSvlanAllocations } = useQuery({
     queryKey: ['ba-svlan-allocations', activeBaId],
-    queryFn: () => adminApi.listBASvlanAllocations(Number(activeBaId)),
+    queryFn: () => (activeBaId ? adminApi.listBASvlanAllocations(Number(activeBaId)) : Promise.resolve([])),
     enabled: Boolean(activeBaId),
   })
+
+  // Auto-populate CVLAN start and end from chosen SVLAN allocation if not filled
+  useEffect(() => {
+    if (selectedSvlanAllocId && svlanAllocations.length > 0) {
+      const alloc = svlanAllocations.find((a: BASvlanAllocation) => a.id === Number(selectedSvlanAllocId))
+      if (alloc) {
+        setValue('cvlan_start', alloc.cvlan_range_start)
+        setValue('cvlan_end', alloc.cvlan_range_end)
+      }
+    }
+  }, [selectedSvlanAllocId, svlanAllocations, setValue])
 
   // 4. Fetch Next Available Instance ID (for create mode)
   const { data: nextInstanceData } = useQuery({
@@ -307,7 +319,7 @@ export function RouterProposalFormPage() {
     scopeBA?.name || user?.profile.business_area?.name || 'Assigned Business Area'
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50">
       <PageHeader
         title={isEdit ? `Edit Proposal: ${proposal?.name || ''}` : 'New Router Proposal'}
         subtitle={
@@ -328,50 +340,51 @@ export function RouterProposalFormPage() {
         }
       />
 
-      {/* Stepper Navigation */}
-      <div className="grid grid-cols-3 gap-2 p-1.5 bg-surface-2/60 rounded-xl border border-hairline">
-        {[
-          { num: 1, label: '1. Basic Info', icon: Server },
-          { num: 2, label: '2. Network', icon: Network },
-          { num: 3, label: '3. Credentials', icon: KeyRound },
-        ].map((s) => {
-          const Icon = s.icon
-          const isActive = step === s.num
-          const isDone = step > s.num
-          return (
-            <button
-              key={s.num}
-              type="button"
-              onClick={async () => {
-                if (s.num < step) setStep(s.num)
-                else if (await validateStep(step)) setStep(s.num)
-              }}
-              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : isDone
-                  ? 'bg-surface text-foreground hover:bg-surface-2'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              <span>{s.label}</span>
-              {isDone && <Check className="h-3 w-3 text-healthy" />}
-            </button>
-          )
-        })}
-      </div>
+      <div className="p-6 lg:p-8 space-y-6 max-w-4xl">
+        {/* Stepper Navigation */}
+        <div className="grid grid-cols-3 gap-2 p-1.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+          {[
+            { num: 1, label: '1. Basic Info', icon: Server },
+            { num: 2, label: '2. Network', icon: Network },
+            { num: 3, label: '3. Credentials', icon: KeyRound },
+          ].map((s) => {
+            const Icon = s.icon
+            const isActive = step === s.num
+            const isDone = step > s.num
+            return (
+              <button
+                key={s.num}
+                type="button"
+                onClick={async () => {
+                  if (s.num < step) setStep(s.num)
+                  else if (await validateStep(step)) setStep(s.num)
+                }}
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : isDone
+                    ? 'bg-slate-50 text-slate-900 hover:bg-slate-100'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{s.label}</span>
+                {isDone && <Check className="h-3 w-3 text-emerald-600" />}
+              </button>
+            )
+          })}
+        </div>
 
-      {/* Form Content */}
-      <form onSubmit={handleSubmit(onSubmit)}>
+        {/* Form Content */}
+        <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardBody className="p-6 space-y-6">
             {/* ── STEP 1: Basic Info ── */}
             {step === 1 && (
               <div className="space-y-4 animate-in fade-in duration-150">
-                <div className="border-b border-hairline pb-3 mb-4">
-                  <h3 className="text-sm font-bold text-foreground">Step 1 — Basic Information</h3>
-                  <p className="text-xs text-muted-foreground">
+                <div className="border-b border-slate-200 pb-3 mb-4">
+                  <h3 className="text-sm font-bold text-slate-900">Step 1 — Basic Information</h3>
+                  <p className="text-xs text-slate-500">
                     Name, unique identifier slug, and regional assignment.
                   </p>
                 </div>
@@ -413,15 +426,15 @@ export function RouterProposalFormPage() {
 
                   {isNOC ? (
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground block mb-1">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500 block mb-1">
                         Circle
                       </label>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-surface-2 rounded-lg border border-hairline text-xs font-medium text-foreground">
+                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 rounded-lg border border-slate-200 text-xs font-medium text-slate-900">
                         <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
                         <span>{circleDisplayName}</span>
-                        <Lock className="h-3 w-3 text-muted-foreground ml-auto" />
+                        <Lock className="h-3 w-3 text-slate-500 ml-auto" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
+                      <p className="text-[11px] text-slate-500 mt-1">
                         Fixed to your NOC credentials
                       </p>
                     </div>
@@ -440,15 +453,15 @@ export function RouterProposalFormPage() {
 
                   {isNOC ? (
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground block mb-1">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500 block mb-1">
                         Business Area
                       </label>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-surface-2 rounded-lg border border-hairline text-xs font-medium text-foreground">
+                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 rounded-lg border border-slate-200 text-xs font-medium text-slate-900">
                         <Building className="h-3.5 w-3.5 text-primary shrink-0" />
                         <span>{baDisplayName}</span>
-                        <Lock className="h-3 w-3 text-muted-foreground ml-auto" />
+                        <Lock className="h-3 w-3 text-slate-500 ml-auto" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
+                      <p className="text-[11px] text-slate-500 mt-1">
                         Fixed to your NOC credentials
                       </p>
                     </div>
@@ -467,13 +480,13 @@ export function RouterProposalFormPage() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
                     Proposal Notes
                   </label>
                   <textarea
                     rows={3}
                     placeholder="Provide context, deployment purpose, or notes for the Super Admin reviewer..."
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-hairline bg-surface text-foreground outline-none focus:border-primary placeholder:text-muted-foreground"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-900 outline-none focus:border-primary placeholder:text-slate-500"
                     {...register('notes')}
                   />
                 </div>
@@ -483,11 +496,11 @@ export function RouterProposalFormPage() {
             {/* ── STEP 2: Network Specifications ── */}
             {step === 2 && (
               <div className="space-y-4 animate-in fade-in duration-150">
-                <div className="border-b border-hairline pb-3 mb-4">
-                  <h3 className="text-sm font-bold text-foreground">
+                <div className="border-b border-slate-200 pb-3 mb-4">
+                  <h3 className="text-sm font-bold text-slate-900">
                     Step 2 — Network Specifications
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500">
                     IP endpoints, interfaces, and SVLAN/CVLAN allocations.
                   </p>
                 </div>
@@ -531,21 +544,33 @@ export function RouterProposalFormPage() {
                   />
                 </div>
 
-                <div className="p-4 bg-surface-2/40 rounded-xl border border-hairline space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
                     VLAN Allocation & Range
                   </h4>
 
                   <Select
                     label="SVLAN Allocation (Optional)"
-                    placeholder="Select SVLAN Allocation (or leave unselected)"
+                    placeholder={
+                      loadingSvlanAllocations
+                        ? 'Loading SVLAN allocations...'
+                        : svlanAllocations.length === 0
+                        ? 'No SVLAN allocations for this BA (manual CVLAN range)'
+                        : 'Select SVLAN Allocation (or leave unselected)'
+                    }
                     options={svlanAllocations.map((a: BASvlanAllocation) => ({
                       value: a.id,
-                      label: `SVLAN ${a.svlan} (CVLAN range: ${a.cvlan_range_start}–${a.cvlan_range_end})`,
+                      label: `SVLAN ${a.svlan} (CVLAN range: ${a.cvlan_range_start}–${a.cvlan_range_end})${a.is_exhausted ? ' [EXHAUSTED]' : ''}`,
                     }))}
                     error={errors.svlan_allocation_id?.message}
                     {...register('svlan_allocation_id')}
                   />
+
+                  {activeBaId && !loadingSvlanAllocations && svlanAllocations.length === 0 && (
+                    <p className="text-[11.5px] text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                      ℹ️ No SVLAN allocations currently assigned to this Business Area. You may specify manual CVLAN bounds below or allocate an SVLAN under Master Data.
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <Input
@@ -571,18 +596,18 @@ export function RouterProposalFormPage() {
             {/* ── STEP 3: Credentials & Access ── */}
             {step === 3 && (
               <div className="space-y-4 animate-in fade-in duration-150">
-                <div className="border-b border-hairline pb-3 mb-4">
-                  <h3 className="text-sm font-bold text-foreground">
+                <div className="border-b border-slate-200 pb-3 mb-4">
+                  <h3 className="text-sm font-bold text-slate-900">
                     Step 3 — Credentials & Access (Optional)
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500">
                     API endpoint and SSH management credentials.
                   </p>
                 </div>
 
                 {/* Encryption Notice */}
-                <div className="p-3 bg-healthy/10 border border-healthy/20 rounded-lg flex items-center gap-2.5 text-xs text-healthy font-medium">
-                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2.5 text-xs text-emerald-800 font-medium">
+                  <ShieldAlert className="h-4 w-4 text-emerald-600 shrink-0" />
                   <span>
                     All credentials are encrypted with HKDF-SHA256 & Fernet before storage in the
                     database and are never exposed in plaintext.
@@ -642,7 +667,7 @@ export function RouterProposalFormPage() {
             )}
 
             {/* Stepper Actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-hairline">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
               {step > 1 ? (
                 <Button
                   type="button"
@@ -700,6 +725,7 @@ export function RouterProposalFormPage() {
           </CardBody>
         </Card>
       </form>
+      </div>
     </div>
   )
 }

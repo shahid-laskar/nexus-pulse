@@ -13,6 +13,9 @@ import {
   Clock,
   ExternalLink,
   ShieldAlert,
+  BookOpen,
+  Gauge,
+  RotateCcw,
 } from 'lucide-react'
 import { ebApi } from '@/api/eb'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
@@ -26,6 +29,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/store/auth'
 import { EBChangeRequestModal } from './EBChangeRequestModal'
 import { ChangeRequestDetailModal } from './ChangeRequestDetailModal'
+import { EditLegalDocModal } from './EditLegalDocModal'
 import type { ChangeRequest } from '@/types'
 
 export function EBCustomerDetailPage() {
@@ -37,6 +41,7 @@ export function EBCustomerDetailPage() {
   const { canManageCustomers } = useAuthStore()
 
   const [confirmReady, setConfirmReady] = useState(false)
+  const [confirmUnmarkReady, setConfirmUnmarkReady] = useState(false)
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
 
   // Change Request Modal states
@@ -44,12 +49,28 @@ export function EBCustomerDetailPage() {
   const [resubmitTarget, setResubmitTarget] = useState<ChangeRequest | null>(null)
   const [inspectTarget, setInspectTarget] = useState<ChangeRequest | null>(null)
 
+  // Legal Doc Modal state
+  const [editingDocType, setEditingDocType] = useState<'tos' | 'privacy' | 'fup' | null>(null)
+
   // Query Customer Details
   const { data: customer, isLoading, isError } = useQuery({
     queryKey: ['eb-customer', customerId],
     queryFn: () => ebApi.get(customerId),
     enabled: Boolean(customerId),
   })
+
+  // Query Legal Compliance Documents
+  const { data: legalDocsData, isLoading: isLoadingLegalDocs } = useQuery({
+    queryKey: ['eb-legal-docs', customerId],
+    queryFn: () => ebApi.listLegalDocs(customerId),
+    enabled: Boolean(customerId),
+  })
+
+  const legalDocsList = legalDocsData?.legal_documents || [
+    { id: 1, doc_type: 'tos', title: 'Terms of Service', version: 1, is_active: true },
+    { id: 2, doc_type: 'privacy', title: 'Privacy Policy', version: 1, is_active: true },
+    { id: 3, doc_type: 'fup', title: 'Fair Usage Policy', version: 1, is_active: true },
+  ]
 
   // Query Change Requests History
   const isPushedOrActive =
@@ -70,6 +91,17 @@ export function EBCustomerDetailPage() {
       setConfirmReady(false)
     },
     onError: (err) => toast.error(extractErrorMessage(err, 'Failed to mark customer READY')),
+  })
+
+  const unmarkReady = useMutation({
+    mutationFn: () => ebApi.unmarkReady(customerId),
+    onSuccess: () => {
+      toast.success('Returned to DRAFT status')
+      qc.invalidateQueries({ queryKey: ['eb-customer', customerId] })
+      qc.invalidateQueries({ queryKey: ['eb-customers'] })
+      setConfirmUnmarkReady(false)
+    },
+    onError: (err) => toast.error(extractErrorMessage(err, 'Failed to return customer to DRAFT')),
   })
 
   const deactivate = useMutation({
@@ -93,21 +125,22 @@ export function EBCustomerDetailPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-50">
       <PageHeader
         title={customer.company_name}
-        subtitle={`EB Customer ID: ${customer.id}`}
+        subtitle={`EB Customer ID: #${customer.id} | GSTIN: ${customer.gstin}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Link to="/eb">
-              <Button variant="secondary" size="sm">
-                ← Back
+            <Link to="/eb/customers">
+              <Button variant="secondary" size="sm" className="gap-1.5 h-8 text-xs">
+                Back to EB
               </Button>
             </Link>
 
             {canManageCustomers && !customer.is_pushed && (
               <Link to={`/eb/customers/${customer.id}/edit`}>
-                <Button size="sm" variant="secondary">
+                <Button size="sm" variant="secondary" className="gap-1.5 h-8 text-xs">
+                  <FileEdit className="h-3.5 w-3.5" />
                   Edit Details
                 </Button>
               </Link>
@@ -121,21 +154,44 @@ export function EBCustomerDetailPage() {
                   setResubmitTarget(null)
                   setShowChangeModal(true)
                 }}
-                className="flex items-center gap-1.5 shadow-sm"
+                className="gap-1.5 h-8 text-xs"
               >
-                <Sliders className="w-4 h-4" />
+                <Sliders className="w-3.5 h-3.5" />
                 Request Change
               </Button>
             )}
 
             {canManageCustomers && customer.status === 'DRAFT' && (
-              <Button size="sm" onClick={() => setConfirmReady(true)}>
-                Mark READY
+              <Button
+                size="sm"
+                variant="primary"
+                className="gap-1.5 h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => setConfirmReady(true)}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Mark Ready
+              </Button>
+            )}
+
+            {canManageCustomers && customer.status === 'READY' && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1.5 h-8 text-xs border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100"
+                onClick={() => setConfirmUnmarkReady(true)}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Return to Draft
               </Button>
             )}
 
             {canManageCustomers && !customer.is_pushed && (
-              <Button size="sm" variant="danger" onClick={() => setConfirmDeactivate(true)}>
+              <Button
+                size="sm"
+                variant="danger"
+                className="gap-1.5 h-8 text-xs"
+                onClick={() => setConfirmDeactivate(true)}
+              >
                 Deactivate
               </Button>
             )}
@@ -143,38 +199,58 @@ export function EBCustomerDetailPage() {
         }
       />
 
-      <div className="p-8 space-y-6 max-w-6xl">
+      <div className="p-6 lg:p-8 space-y-6 max-w-6xl">
         {/* Status Header Strip */}
-        <div className="flex flex-wrap items-center gap-4 bg-surface p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div>
-            <span className="text-xs text-slate-500 font-bold uppercase">Status</span>
-            <div className="mt-1">
-              <StatusBadge status={customer.status} />
+        <Card className="border-slate-200 shadow-2xs">
+          <CardBody className="p-4 flex flex-wrap items-center gap-6">
+            <div>
+              <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Status</span>
+              <div className="mt-1">
+                <StatusBadge status={customer.status} />
+              </div>
+            </div>
+            <div className="border-l border-slate-200 pl-6">
+              <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Customer Type</span>
+              <p className="text-xs font-semibold text-slate-800 capitalize mt-1">{customer.customer_type}</p>
+            </div>
+            <div className="border-l border-slate-200 pl-6">
+              <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">GSTIN</span>
+              <p className="text-xs font-mono font-semibold text-slate-800 mt-1">{customer.gstin}</p>
+            </div>
+            {customer.cin && (
+              <div className="border-l border-slate-200 pl-6">
+                <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">CIN</span>
+                <p className="text-xs font-mono font-semibold text-slate-800 mt-1">{customer.cin}</p>
+              </div>
+            )}
+            {customer.captive_customer_slug && (
+              <div className="border-l border-slate-200 pl-6">
+                <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Captive Slug</span>
+                <p className="text-xs font-mono font-semibold text-slate-800 mt-1">{customer.captive_customer_slug}</p>
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* Informational Banner for Step 1 Network Configured Customers */}
+        {customer.status === 'NETWORK_CONFIGURED' && (
+          <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 text-amber-700 rounded-lg shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-amber-900">
+                  Step 1 Network Provisioned — Pending Step 2 Activation
+                </h4>
+                <p className="text-xs text-amber-700">
+                  VyOS QinQ sub-interface, DHCP pool, and DNS forwarding have been provisioned by NOC. 
+                  To modify customer details, NOC must rollback Step 1 first.
+                </p>
+              </div>
             </div>
           </div>
-          <div className="border-l border-slate-200 pl-4">
-            <span className="text-xs text-slate-500 font-bold uppercase">Customer Type</span>
-            <p className="text-sm font-medium text-foreground capitalize">{customer.customer_type}</p>
-          </div>
-          <div className="border-l border-slate-200 pl-4">
-            <span className="text-xs text-slate-500 font-bold uppercase">GSTIN</span>
-            <p className="text-sm font-mono text-foreground">{customer.gstin}</p>
-          </div>
-          {customer.cin && (
-            <div className="border-l border-slate-200 pl-4">
-              <span className="text-xs text-slate-500 font-bold uppercase">CIN</span>
-              <p className="text-sm font-mono text-foreground">{customer.cin}</p>
-            </div>
-          )}
-          {customer.captive_customer_slug && (
-            <div className="border-l border-slate-200 pl-4">
-              <span className="text-xs text-slate-500 font-bold uppercase">Router Slug</span>
-              <p className="text-sm font-mono text-primary font-medium">
-                {customer.captive_customer_slug}
-              </p>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Informational Banner for Pushed Customers */}
         {isPushedOrActive && (
@@ -215,7 +291,7 @@ export function EBCustomerDetailPage() {
             <CardBody className="space-y-3 text-sm">
               <div>
                 <span className="text-xs text-slate-500 font-bold uppercase">Contact Name</span>
-                <p className="font-semibold text-foreground">{customer.contact_person}</p>
+                <p className="font-semibold text-slate-900">{customer.contact_person}</p>
               </div>
               <div>
                 <span className="text-xs text-slate-500 font-bold uppercase">Email</span>
@@ -228,30 +304,32 @@ export function EBCustomerDetailPage() {
             </CardBody>
           </Card>
 
-          {/* Manager & Branch */}
-          <Card>
-            <CardHeader>Branch & Manager Information</CardHeader>
-            <CardBody className="space-y-3 text-sm">
-              <div>
-                <span className="text-xs text-slate-500 font-bold uppercase">Branch</span>
-                <p className="font-semibold text-foreground">
-                  {customer.branch_name || '—'} {customer.branch_code ? `(${customer.branch_code})` : ''}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-slate-500 font-bold uppercase">Manager Name</span>
-                <p className="text-slate-800">{customer.manager_name || '—'}</p>
-              </div>
-              <div>
-                <span className="text-xs text-slate-500 font-bold uppercase">Manager Phone</span>
-                <p className="text-slate-800">{customer.manager_phone || '—'}</p>
-              </div>
-              <div>
-                <span className="text-xs text-slate-500 font-bold uppercase">Manager Email</span>
-                <p className="text-slate-800">{customer.manager_email || '—'}</p>
-              </div>
-            </CardBody>
-          </Card>
+          {/* Manager & Branch (only for register_first) */}
+          {(customer.customer_type === 'register_first' || customer.branch_name) && (
+            <Card>
+              <CardHeader>Branch & Manager Information</CardHeader>
+              <CardBody className="space-y-3 text-sm">
+                <div>
+                  <span className="text-xs text-slate-500 font-bold uppercase">Branch</span>
+                  <p className="font-semibold text-slate-900">
+                    {customer.branch_name || '—'} {customer.branch_code ? `(${customer.branch_code})` : ''}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 font-bold uppercase">Manager Name</span>
+                  <p className="text-slate-800">{customer.manager_name || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 font-bold uppercase">Manager Phone</span>
+                  <p className="text-slate-800">{customer.manager_phone || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 font-bold uppercase">Manager Email</span>
+                  <p className="text-slate-800">{customer.manager_email || '—'}</p>
+                </div>
+              </CardBody>
+            </Card>
+          )}
 
           {/* Billing Address */}
           <Card>
@@ -316,12 +394,6 @@ export function EBCustomerDetailPage() {
                   {customer.welcome_message || '(empty)'}
                 </p>
               </div>
-              <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-2">
-                <span className="text-slate-500">Domain:</span>
-                <span className="font-mono font-medium text-slate-800">
-                  {customer.portal_domain || '—'}
-                </span>
-              </div>
             </CardBody>
           </Card>
 
@@ -356,6 +428,202 @@ export function EBCustomerDetailPage() {
             </CardBody>
           </Card>
         </div>
+
+        {/* User Bandwidth Profiles (Bronze, Silver, Gold, Platinum & LAN-Only) */}
+        <Card className="overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Gauge className="w-5 h-5 text-primary" />
+              <div>
+                <h3 className="text-base font-bold text-slate-900">User Bandwidth Profiles & Speed Tiers</h3>
+                <p className="text-xs text-slate-500">
+                  Configured subscriber plans, traffic shaping limits, priority queues, and LAN-Only intranet routing
+                </p>
+              </div>
+            </div>
+            {isPushedOrActive ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setResubmitTarget(null)
+                  setShowChangeModal(true)
+                }}
+              >
+                Request Profile Update
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/eb/customers/${customer.id}/edit`)}
+              >
+                Edit Profiles
+              </Button>
+            )}
+          </div>
+
+          <CardBody className="p-0">
+            <div className="divide-y divide-slate-100">
+              {(customer.bandwidth_profiles && customer.bandwidth_profiles.length > 0
+                ? customer.bandwidth_profiles
+                : [
+                    { profile_name: 'bronze', display_name: 'Bronze - 2M/4M', rate_bandwidth_down: 4096, ceil_bandwidth_down: 8192, rate_bandwidth_up: 2048, ceil_bandwidth_up: 4096, priority: 4, is_active: true, is_lan_only: false },
+                    { profile_name: 'silver', display_name: 'Silver - 5M/10M', rate_bandwidth_down: 10240, ceil_bandwidth_down: 20480, rate_bandwidth_up: 5120, ceil_bandwidth_up: 10240, priority: 3, is_active: false, is_lan_only: false },
+                    { profile_name: 'gold', display_name: 'Gold - 10M/20M', rate_bandwidth_down: 20480, ceil_bandwidth_down: 40960, rate_bandwidth_up: 10240, ceil_bandwidth_up: 20480, priority: 2, is_active: false, is_lan_only: false },
+                    { profile_name: 'platinum', display_name: 'Platinum - 40M/100M', rate_bandwidth_down: 102400, ceil_bandwidth_down: 204800, rate_bandwidth_up: 40960, ceil_bandwidth_up: 81920, priority: 1, is_active: false, is_lan_only: false },
+                  ]
+              ).map((p: any) => {
+                const tierBadges: Record<string, string> = {
+                  bronze: 'bg-amber-100 text-amber-900 border-amber-200',
+                  silver: 'bg-slate-200 text-slate-800 border-slate-300',
+                  gold: 'bg-yellow-100 text-yellow-900 border-yellow-300',
+                  platinum: 'bg-purple-100 text-purple-900 border-purple-200',
+                }
+                const badgeClass = tierBadges[p.profile_name] || 'bg-slate-100 text-slate-800 border-slate-200'
+
+                return (
+                  <div
+                    key={p.profile_name}
+                    className={`p-4 sm:px-6 flex flex-wrap items-center justify-between gap-4 transition-colors ${
+                      p.is_active ? 'hover:bg-slate-50/60' : 'bg-slate-50/40 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-[240px] flex-1">
+                      <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                        <Gauge className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${badgeClass}`}>
+                            {p.profile_name.toUpperCase()}
+                          </span>
+                          <h4 className="text-sm font-semibold text-slate-900">{p.display_name}</h4>
+                          {p.is_active ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                              Disabled
+                            </span>
+                          )}
+                          {p.is_lan_only && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              LAN-Only Intranet
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {p.is_lan_only
+                            ? 'Intranet group: local device communication with bandwidth shaping. WAN routing blocked.'
+                            : `Download: ${Math.round((p.rate_bandwidth_down / 1024) * 10) / 10}M (burst ${Math.round((p.ceil_bandwidth_down / 1024) * 10) / 10}M) | Upload: ${Math.round((p.rate_bandwidth_up / 1024) * 10) / 10}M (burst ${Math.round((p.ceil_bandwidth_up / 1024) * 10) / 10}M)`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6 text-xs text-slate-600">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-semibold">Priority</span>
+                        <span className="font-mono font-medium text-slate-800">Tier {p.priority}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-semibold">Down / Up</span>
+                        <span className="font-mono font-medium text-slate-800">
+                          {Math.round(p.rate_bandwidth_down / 1024)}M ↓ / {Math.round(p.rate_bandwidth_up / 1024)}M ↑
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Legal Compliance Documents (DOT / TRAI Audit Trail) */}
+        <Card className="overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Legal Compliance Documents & Terms</h3>
+                <p className="text-xs text-slate-500">
+                  Versioned Terms of Service, Privacy Policy, and Fair Usage Policy (DOT / TRAI Audit Compliant)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <CardBody className="p-0">
+            {isLoadingLegalDocs ? (
+              <div className="p-6 text-center">
+                <Spinner className="mx-auto" />
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {[
+                  {
+                    type: 'tos' as const,
+                    name: 'Terms of Service (ToS)',
+                    desc: 'User agreement, authorized use, network security compliance, and liability limits',
+                  },
+                  {
+                    type: 'privacy' as const,
+                    name: 'Privacy Policy',
+                    desc: 'DOT/TRAI mandatory session data collection, retention periods, and lawful disclosure policies',
+                  },
+                  {
+                    type: 'fup' as const,
+                    name: 'Fair Usage Policy (FUP)',
+                    desc: 'Equitable bandwidth sharing rules, peak-hour management, and peer-to-peer traffic policies',
+                  },
+                ].map((item) => {
+                  const doc = legalDocsList.find((d: any) => d.doc_type === item.type)
+                  const version = doc?.version ?? 1
+                  const title = doc?.title || item.name
+
+                  return (
+                    <div
+                      key={item.type}
+                      className="p-4 sm:px-6 flex flex-wrap items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
+                    >
+                      <div className="flex items-start gap-3 min-w-[240px] flex-1">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                          <BookOpen className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              v{version}
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Active
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="xs"
+                          variant="secondary"
+                          onClick={() => setEditingDocType(item.type)}
+                          className="gap-1 text-xs"
+                        >
+                          <FileEdit className="w-3.5 h-3.5" />
+                          Edit & Publish v{version + 1}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardBody>
+        </Card>
 
         {/* Change Requests History Section */}
         <Card className="overflow-hidden">
@@ -517,6 +785,15 @@ export function EBCustomerDetailPage() {
           }}
         />
 
+        {/* Legal Document Edit / Publish Modal */}
+        <EditLegalDocModal
+          isOpen={editingDocType !== null}
+          customerId={customerId}
+          docType={editingDocType}
+          currentDoc={legalDocsList.find((d: any) => d.doc_type === editingDocType)}
+          onClose={() => setEditingDocType(null)}
+        />
+
         {/* Confirmation Dialogs */}
         <ConfirmDialog
           isOpen={confirmReady}
@@ -527,6 +804,17 @@ export function EBCustomerDetailPage() {
           isLoading={markReady.isPending}
           onConfirm={() => markReady.mutate()}
           onClose={() => setConfirmReady(false)}
+        />
+
+        <ConfirmDialog
+          isOpen={confirmUnmarkReady}
+          title="Return EB Customer to DRAFT?"
+          description={`Are you sure you want to return ${customer.company_name} to DRAFT? This allows you to edit company details before NOC provisioning begins.`}
+          confirmText="Return to Draft"
+          variant="primary"
+          isLoading={unmarkReady.isPending}
+          onConfirm={() => unmarkReady.mutate()}
+          onClose={() => setConfirmUnmarkReady(false)}
         />
 
         <ConfirmDialog

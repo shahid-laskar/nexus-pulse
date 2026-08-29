@@ -51,7 +51,7 @@ export function Pill({ children, className }: { children: ReactNode; className?:
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-muted-foreground",
+        "inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600",
         className,
       )}
     >
@@ -80,22 +80,22 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-[10px] border border-hairline bg-surface transition-colors duration-150 hover:border-border",
+        "rounded-xl border border-slate-200 bg-white transition-colors duration-150 shadow-2xs",
         className,
       )}
     >
       {(title || actions) && (
-        <header className="flex items-start justify-between gap-3 border-b border-hairline px-4 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
           <div className="min-w-0">
-            <h2 className="truncate text-[13px] font-semibold text-foreground">{title}</h2>
+            <h2 className="truncate text-[13px] font-bold text-slate-900">{title}</h2>
             {description && (
-              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{description}</p>
+              <p className="mt-0.5 truncate text-[11px] text-slate-500">{description}</p>
             )}
           </div>
           {actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}
         </header>
       )}
-      <div className={cn("p-4", bodyClassName)}>{children}</div>
+      <div className={cn("p-5", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -119,9 +119,9 @@ export function Sparkline({
     .map((v, i) => `${(i / (values.length - 1)) * 100},${28 - ((v - min) / span) * 26 - 1}`)
     .join(" ");
   const stroke = {
-    critical: "stroke-critical",
-    warn: "stroke-warn",
-    healthy: "stroke-healthy",
+    critical: "stroke-rose-600",
+    warn: "stroke-amber-600",
+    healthy: "stroke-emerald-600",
     neutral: "stroke-primary",
   }[status];
   return (
@@ -150,16 +150,16 @@ export function StatWidget({
 }) {
   const deltaUp = delta?.startsWith("+");
   return (
-    <div className="group min-w-0 rounded-[10px] border border-hairline bg-surface px-4 py-3 transition-colors duration-150 hover:border-border">
+    <div className="group min-w-0 rounded-xl border border-slate-200 bg-white p-4 transition-all shadow-2xs hover:shadow-xs">
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500">
           {label}
         </span>
         {delta && (
           <span
             className={cn(
               "tnum text-[11px] font-medium",
-              deltaUp ? "text-healthy" : "text-muted-foreground",
+              deltaUp ? "text-emerald-600 font-semibold" : "text-slate-500",
             )}
           >
             {delta}
@@ -167,13 +167,13 @@ export function StatWidget({
         )}
       </div>
       <div className="mt-1 flex items-baseline gap-1">
-        <span className="tnum text-[28px] font-semibold leading-none tracking-tight text-foreground">
+        <span className="tnum text-[28px] font-bold leading-none tracking-tight text-slate-900">
           {value}
         </span>
-        {unit && <span className="text-[12px] text-muted-foreground">{unit}</span>}
+        {unit && <span className="text-[12px] text-slate-400">{unit}</span>}
       </div>
       {spark && <Sparkline data={spark} status={status} className="mt-2" />}
-      {note && <p className="mt-1.5 truncate text-[11px] text-muted-foreground">{note}</p>}
+      {note && <p className="mt-1.5 truncate text-[11px] text-slate-400">{note}</p>}
     </div>
   );
 }
@@ -182,12 +182,14 @@ export function StatWidget({
 
 export function PageHeader({
   title,
+  subtitle,
   question,
   actions,
   children,
 }: {
   title: string;
-  question: string;
+  subtitle?: string;
+  question?: string;
   actions?: ReactNode;
   children?: ReactNode;
 }) {
@@ -195,8 +197,8 @@ export function PageHeader({
     <div className="mb-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[20px] font-semibold tracking-tight text-foreground">{title}</h1>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">{question}</p>
+          <h1 className="text-[20px] font-bold tracking-tight text-slate-900">{title}</h1>
+          {(subtitle || question) && <p className="mt-0.5 text-[12px] text-slate-500">{subtitle || question}</p>}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
@@ -220,9 +222,9 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-      {icon && <div className="mb-3 text-muted-foreground">{icon}</div>}
-      <p className="text-[13px] font-medium text-foreground">{title}</p>
-      <p className="mt-1 max-w-sm text-[12px] text-muted-foreground">{body}</p>
+      {icon && <div className="mb-3 text-slate-400">{icon}</div>}
+      <p className="text-[13px] font-semibold text-slate-900">{title}</p>
+      <p className="mt-1 max-w-sm text-[12px] text-slate-500">{body}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -232,7 +234,7 @@ export function SkeletonRows({ rows = 6 }: { rows?: number }) {
   return (
     <div className="space-y-2" aria-hidden>
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-9 animate-pulse rounded-md bg-surface-2" />
+        <div key={i} className="h-9 animate-pulse rounded-lg bg-slate-100" />
       ))}
     </div>
   );
@@ -242,7 +244,7 @@ export function SkeletonRows({ rows = 6 }: { rows?: number }) {
 
 export function KeyHint({ children }: { children: ReactNode }) {
   return (
-    <kbd className="rounded border border-hairline bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+    <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
       {children}
     </kbd>
   );
@@ -252,13 +254,13 @@ export function Meter({ value, status }: { value: number; status?: Severity }) {
   const s: Severity = status ?? (value > 85 ? "critical" : value > 65 ? "warn" : "healthy");
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-full max-w-[80px] overflow-hidden rounded-full bg-surface-2">
+      <div className="h-1.5 w-full max-w-[80px] overflow-hidden rounded-full bg-slate-100">
         <div
           className={cn("h-full rounded-full transition-[width] duration-500", STATUS[s].dot)}
           style={{ width: `${Math.min(100, value)}%` }}
         />
       </div>
-      <span className="tnum w-8 text-right text-[11px] text-muted-foreground">{value}%</span>
+      <span className="tnum w-8 text-right text-[11px] text-slate-500">{value}%</span>
     </div>
   );
 }

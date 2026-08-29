@@ -14,11 +14,10 @@ import { UsersListPage }      from '@/pages/users/UsersListPage'
 import { UserCreatePage }     from '@/pages/users/UserCreatePage'
 import { UserEditPage }       from '@/pages/users/UserEditPage'
 import { ProfilePage }        from '@/pages/users/ProfilePage'
+import { MasterDataHubPage }  from '@/pages/master-data/MasterDataHubPage'
 import { CirclesPage }        from '@/pages/master-data/CirclesPage'
 import { BusinessAreasPage }  from '@/pages/master-data/BusinessAreasPage'
 import { CustomersPage }      from '@/pages/master-data/CustomersPage'
-import { CustomerFormPage }   from '@/pages/master-data/CustomerFormPage'
-import { CustomerDetailPage } from '@/pages/master-data/CustomerDetailPage'
 import { NOCDashboardPage }   from '@/pages/noc/NOCDashboardPage'
 import { NOCOperationsPage }   from '@/pages/noc/NOCOperationsPage'
 import { NOCProvisioningPage } from '@/pages/noc/NOCProvisioningPage'
@@ -69,12 +68,13 @@ const router = createBrowserRouter([
       { path: 'users/:id/edit', element: <UserEditPage /> },
       { path: 'profile',        element: <ProfilePage /> },
 
-      // Master data
-      { path: 'circles',               element: <CirclesPage /> },
-      { path: 'business-areas',        element: <BusinessAreasPage /> },
+      // Master data & Customers
+      { path: 'circles',               element: <MasterDataHubPage /> },
+      { path: 'business-areas',        element: <MasterDataHubPage /> },
       { path: 'customers',             element: <CustomersPage /> },
-      { path: 'customers/create',      element: <CustomerFormPage /> },
-      { path: 'customers/:id',         element: <CustomerDetailPage /> },
+      { path: 'customers/create',      element: <EBCustomerFormPage /> },
+      { path: 'customers/:id',         element: <EBCustomerDetailPage /> },
+      { path: 'customers/:id/edit',    element: <EBCustomerFormPage /> },
       { path: 'admin/router-approvals', element: <RouterApprovalsPage /> },
 
       // NOC

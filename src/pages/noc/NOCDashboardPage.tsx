@@ -76,23 +76,23 @@ function Verdict({
     : "Network nominal — no critical incidents"
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-hairline bg-surface px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-slate-200 bg-white px-4 py-3">
       <div className="flex items-center gap-3">
         <span
           className={cn(
             "grid h-9 w-9 place-items-center rounded-full",
-            status === "critical" ? "bg-critical-soft" : "bg-healthy-soft",
+            status === "critical" ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600",
           )}
         >
           {status === "critical" ? (
-            <Siren className="h-4 w-4 text-critical" />
+            <Siren className="h-4 w-4 text-rose-600" />
           ) : (
-            <CircleCheck className="h-4 w-4 text-healthy" />
+            <CircleCheck className="h-4 w-4 text-emerald-600" />
           )}
         </span>
         <div>
           <p className="text-[15px] font-semibold tracking-tight">{sentence}</p>
-          <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+          <p className="mt-0.5 text-[11.5px] text-slate-500">
             {alerts.filter((a) => !a.acked).length} unacknowledged alerts ·{" "}
             {readyCount} provisioning jobs in queue · last evaluated just now
           </p>
@@ -102,7 +102,7 @@ function Verdict({
         <button
           onClick={onRunHealthCheck}
           disabled={isHealthChecking}
-          className="rounded-md border border-hairline bg-surface px-2.5 py-1.5 text-[12px] transition-colors hover:bg-accent disabled:opacity-50"
+          className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] transition-colors hover:bg-accent disabled:opacity-50"
         >
           {isHealthChecking ? 'Checking...' : 'Run health check'}
         </button>
@@ -132,11 +132,11 @@ function AttentionStream() {
               <StatusDot status={i.severity} pulse />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[11px] text-muted-foreground">{i.id}</span>
+                  <span className="font-mono text-[11px] text-slate-500">{i.id}</span>
                   <span className="truncate text-[13px] font-medium">{i.title}</span>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-muted-foreground">
-                  <span className="tnum font-medium text-foreground">
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-slate-500">
+                  <span className="tnum font-medium text-slate-900">
                     ~{fmt.format(i.subscribersAffected)} subscribers
                   </span>
                   <span>{i.zone}</span>
@@ -155,7 +155,7 @@ function AttentionStream() {
                         icon: '👀'
                       })
                     }}
-                    className="rounded-md border border-hairline bg-surface px-2 py-1 text-[11.5px] transition-colors hover:bg-accent"
+                    className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11.5px] transition-colors hover:bg-accent"
                   >
                     Ack <KeyHint>e</KeyHint>
                   </button>
@@ -164,7 +164,7 @@ function AttentionStream() {
                 )}
                 <button
                   onClick={() => toast.success(`${i.id} snoozed for 30 minutes`)}
-                  className="rounded-md border border-hairline bg-surface px-2 py-1 text-[11.5px] transition-colors hover:bg-accent"
+                  className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11.5px] transition-colors hover:bg-accent"
                 >
                   Snooze
                 </button>
@@ -260,7 +260,7 @@ function Heatmap() {
           ? "bg-primary/45"
           : v > 15
             ? "bg-primary/20"
-            : "bg-surface-2"
+            : "bg-slate-100"
   return (
     <Panel
       title="Instance load heatmap"
@@ -269,7 +269,7 @@ function Heatmap() {
       <div className="space-y-1 h-[200px] overflow-y-auto">
         {heatmap.map((row) => (
           <div key={row.device} className="flex items-center gap-2">
-            <span className="w-28 shrink-0 truncate font-mono text-[10.5px] text-muted-foreground">
+            <span className="w-28 shrink-0 truncate font-mono text-[10.5px] text-slate-500">
               {row.device}
             </span>
             <div className="flex flex-1 gap-[2px]">
@@ -321,18 +321,18 @@ function InstanceHealthCard({ instance }: { instance: InstanceRead }) {
 
   return (
     <Card className={cn("border-l-4", isOnline ? 'border-l-healthy' : isError ? 'border-l-critical' : 'border-l-warn')}>
-      <CardBody className="p-4 bg-surface">
+      <CardBody className="p-4 bg-white">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-bold text-foreground text-sm flex items-center gap-2">
+          <span className="font-bold text-slate-900 text-sm flex items-center gap-2">
             <StatusDot status={isOnline ? 'healthy' : isError ? 'critical' : 'warn'} />
             {instance.name || `Router #${instance.id}`}
           </span>
-          <span className="text-[11px] font-mono text-muted-foreground">
+          <span className="text-[11px] font-mono text-slate-500">
             {isLoading ? 'Checking...' : isOnline ? 'Online' : 'Offline'}
           </span>
         </div>
-        <div className="text-[11.5px] text-muted-foreground space-y-1 font-mono mb-3">
-          <div>Host: {instance.host}</div>
+        <div className="text-[11.5px] text-slate-500 space-y-1 font-mono mb-3">
+          <div>Host: {instance.network?.vyos_ip || instance.host || '—'}</div>
           {health?.latency_ms != null && <div>Latency: {health.latency_ms}ms</div>}
         </div>
         
@@ -340,7 +340,7 @@ function InstanceHealthCard({ instance }: { instance: InstanceRead }) {
         {metrics?.history && (
           <div className="h-[40px] w-full mt-2 opacity-80 flex gap-2">
             <div className="flex-1 h-full relative group">
-              <span className="absolute top-0 left-0 text-[9px] text-muted-foreground z-10">CPU</span>
+              <span className="absolute top-0 left-0 text-[9px] text-slate-500 z-10">CPU</span>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={metrics.history}>
                   <Area type="monotone" dataKey="cpu" stroke="var(--color-chart-1)" fill="var(--color-chart-1)" fillOpacity={0.2} strokeWidth={1.5} />
@@ -348,7 +348,7 @@ function InstanceHealthCard({ instance }: { instance: InstanceRead }) {
               </ResponsiveContainer>
             </div>
             <div className="flex-1 h-full relative group">
-              <span className="absolute top-0 left-0 text-[9px] text-muted-foreground z-10">Traffic</span>
+              <span className="absolute top-0 left-0 text-[9px] text-slate-500 z-10">Traffic</span>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={metrics.history}>
                   <Area type="monotone" dataKey="traffic" stroke="var(--color-chart-3)" fill="var(--color-chart-3)" fillOpacity={0.2} strokeWidth={1.5} />
@@ -435,18 +435,18 @@ export function NOCDashboardPage() {
   const isLoading = loadingInstances || loadingCustomers
 
   return (
-    <div className="mx-auto max-w-[1680px]">
+    <div className="min-h-screen bg-slate-50">
       <PageHeader
         title="Pulse NOC Dashboard"
         subtitle="Real-time network health, incident triage & operational controls"
         actions={
-          <span className="hidden items-center gap-1.5 text-[11px] text-muted-foreground lg:flex">
+          <span className="hidden items-center gap-1.5 text-[11px] text-slate-500 lg:flex">
             Quick actions <KeyHint>.</KeyHint> · Palette <KeyHint>⌘K</KeyHint>
           </span>
         }
       />
 
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="p-6 lg:p-8 space-y-6 max-w-[1680px]">
         <Verdict
           readyCount={ready.length}
           isHealthChecking={runHealthCheckMutation.isPending}
@@ -516,23 +516,23 @@ export function NOCDashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm text-left">
                 <thead>
-                  <tr className="bg-surface-2">
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">Company</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">GSTIN</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">Type</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">Action</th>
+                  <tr className="bg-slate-100">
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">Company</th>
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">GSTIN</th>
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">Type</th>
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-hairline">
                   {ready.map(c => (
                     <tr key={c.id} className="hover:bg-accent/40 transition-colors">
                       <td className="px-4 py-3">
-                        <Link to={`/customers/${c.id}`} className="font-medium text-foreground hover:underline">
+                        <Link to={`/customers/${c.id}`} className="font-medium text-slate-900 hover:underline">
                           {c.company_name}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">{c.gstin}</td>
-                      <td className="px-4 py-3 text-[12px] text-muted-foreground">{c.customer_type}</td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-slate-500">{c.gstin}</td>
+                      <td className="px-4 py-3 text-[12px] text-slate-500">{c.customer_type}</td>
                       <td className="px-4 py-3">
                         <Link to={`/noc/customers/${c.id}/onboard`}>
                           <Button size="sm">Provision →</Button>
@@ -552,38 +552,38 @@ export function NOCDashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm text-left">
                 <thead>
-                  <tr className="bg-surface-2">
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">Company</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">Captive Slug</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">Instance</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground border-b border-hairline text-xs uppercase tracking-wider">Actions</th>
+                  <tr className="bg-slate-100">
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">Company</th>
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">Captive Slug</th>
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">Instance</th>
+                    <th className="px-4 py-3 font-semibold text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-hairline">
                   {!pushed.length
-                    ? <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No provisioned tenants found</td></tr>
+                    ? <tr><td colSpan={5} className="p-8 text-center text-slate-500">No provisioned tenants found</td></tr>
                     : pushed.map(c => (
                       <tr key={c.id} className="hover:bg-accent/40 transition-colors">
                         <td className="px-4 py-3">
-                          <Link to={`/customers/${c.id}`} className="font-medium text-foreground hover:underline">
+                          <Link to={`/customers/${c.id}`} className="font-medium text-slate-900 hover:underline">
                             {c.company_name}
                           </Link>
                         </td>
                         <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                         <td className="px-4 py-3">
                           {c.captive_customer_slug
-                            ? <code className="text-[11px] bg-surface-2 text-foreground px-1.5 py-0.5 rounded border border-hairline font-mono">{c.captive_customer_slug}</code>
-                            : <span className="text-muted-foreground text-xs">—</span>
+                            ? <code className="text-[11px] bg-slate-100 text-slate-900 px-1.5 py-0.5 rounded border border-slate-200 font-mono">{c.captive_customer_slug}</code>
+                            : <span className="text-slate-500 text-xs">—</span>
                           }
                         </td>
-                        <td className="px-4 py-3 font-mono text-[11.5px] text-muted-foreground">
+                        <td className="px-4 py-3 font-mono text-[11.5px] text-slate-500">
                           {c.captive_instance_id ? `Inst #${c.captive_instance_id}` : '—'}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2 flex-wrap">
                             <Link to={`/noc/customers/${c.id}/sessions`}>
-                              <button className="rounded-md border border-hairline bg-surface px-2.5 py-1.5 text-[11.5px] transition-colors hover:bg-accent">
+                              <button className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11.5px] transition-colors hover:bg-accent">
                                 Operations Panel
                               </button>
                             </Link>
@@ -605,7 +605,7 @@ export function NOCDashboardPage() {
         </Panel>
 
         {/* Mock Data Note */}
-        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-[11px] text-slate-500">
           <Zap className="h-3 w-3 text-accent" /> Pulse Analytics (Traffic, Incidents, Heatmap) currently display deterministic mock data.
         </p>
       </div>

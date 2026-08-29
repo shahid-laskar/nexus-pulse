@@ -280,32 +280,32 @@ export function EBChangeRequestModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 my-8 animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 my-8 animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="bg-slate-900 text-white px-6 py-5 flex items-center justify-between">
+        <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold">
+              <h2 className="text-base font-bold text-slate-900">
                 {resubmitItem
                   ? `Resubmit Change Request #${resubmitItem.id}`
                   : 'Request Configuration Change'}
               </h2>
               {resubmitItem && (
-                <span className="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/20 text-purple-200 border border-purple-400/30">
+                <span className="px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
                   NEEDS INFO
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Customer: <span className="text-white font-medium">{customer.company_name}</span> (ID: {customer.id})
+            <p className="text-xs text-slate-500 mt-0.5">
+              Customer: <span className="text-slate-800 font-semibold">{customer.company_name}</span> (ID: {customer.id})
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 

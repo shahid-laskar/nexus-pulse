@@ -221,7 +221,21 @@ export interface BASvlanAllocationCreate {
 
 // ── Customers ─────────────────────────────────────────────────────────
 
-export type CustomerStatus = 'DRAFT' | 'READY' | 'PUSHED' | 'ACTIVE' | 'INACTIVE'
+export type CustomerStatus = 'DRAFT' | 'READY' | 'NETWORK_CONFIGURED' | 'PUSHED' | 'ACTIVE' | 'INACTIVE'
+
+export interface BandwidthProfileConfig {
+  profile_name: 'bronze' | 'silver' | 'gold' | 'platinum'
+  display_name: string
+  rate_bandwidth_up: number      // kbps
+  ceil_bandwidth_up: number      // kbps
+  rate_bandwidth_down: number    // kbps
+  ceil_bandwidth_down: number    // kbps
+  pool_guaranteed_kbps?: number | null
+  pool_ceiling_kbps?: number | null
+  priority: number
+  is_active: boolean
+  is_lan_only: boolean
+}
 
 export interface CustomerRead {
   id:            number
@@ -260,6 +274,15 @@ export interface CustomerRead {
   installation_state?: string
   installation_pincode?: string
   total_users:     number
+  concurrent_users?: number
+  subnet_cidr?:    string | null
+  gateway_ip?:     string | null
+  dhcp_range_start?: string | null
+  dhcp_range_end?: string | null
+  dhcp_lease_time?: number
+  dhcp_subnet_id?: number | null
+  dns_forward_enabled?: boolean
+  network_configured_at?: string | null
   daily_data_limit_mb: number
   data_limit_mb?:         number | null
   time_limit_minutes?:    number | null
@@ -278,6 +301,7 @@ export interface CustomerRead {
   end_ip?:               string
   qos_mode?:             string
   max_bandwidth:         string
+  bandwidth_profiles?:   BandwidthProfileConfig[]
   mac_binding?:          boolean
   enable_mac_whitelist?: boolean
   api_token:       string
@@ -317,6 +341,9 @@ export interface CustomerCreate {
   location?:               string
   circle_id?:              number
   business_area_id?:       number
+  total_users?:            number
+  concurrent_users?:       number
+  dhcp_lease_time?:        number
   primary_color?:          string
   secondary_color?:        string
   welcome_message?:        string
@@ -361,8 +388,9 @@ export interface CustomerCreate {
   time_limit_minutes?:      number
   throttle_bandwidth_up?:   number
   throttle_bandwidth_down?: number
-  total_users?:             number
   registration_approval_mode?: string
+  max_bandwidth?:           string
+  bandwidth_profiles?:      BandwidthProfileConfig[]
 }
 
 export interface CustomerNetworkUpdate {
@@ -371,8 +399,15 @@ export interface CustomerNetworkUpdate {
   wan_interface:       string
   svlan:               number
   cvlan?:              number
-  start_ip:            string
-  end_ip:              string
+  start_ip?:           string
+  end_ip?:             string
+  subnet_cidr?:        string | null
+  gateway_ip?:         string | null
+  dhcp_range_start?:   string | null
+  dhcp_range_end?:     string | null
+  dhcp_lease_time?:    number
+  dhcp_subnet_id?:     number | null
+  dns_forward_enabled?: boolean
   qos_mode?:           string
   max_bandwidth?:      string
 }
@@ -406,6 +441,14 @@ export interface CustomerUpdate {
   installation_state?:         string
   installation_pincode?:       string
   total_users?:     number
+  concurrent_users?: number
+  subnet_cidr?:        string | null
+  gateway_ip?:         string | null
+  dhcp_range_start?:   string | null
+  dhcp_range_end?:     string | null
+  dhcp_lease_time?:    number
+  dhcp_subnet_id?:     number | null
+  dns_forward_enabled?: boolean
   daily_data_limit_mb?:        number
   registration_approval_mode?: string
   approval_otp_validity_minutes?: number
@@ -431,11 +474,118 @@ export interface CustomerUpdate {
   session_timeout?:            number
   idle_timeout?:               number
   max_concurrent_sessions?:    number
+  max_bandwidth?:              string
+  bandwidth_profiles?:         BandwidthProfileConfig[]
 }
 
 export interface CustomerListResponse {
   total:     number
   customers: CustomerRead[]
+}
+
+// ── IP Calculator & Network Provisioning ──────────────────────────────
+
+export interface IpCalculatorRequest {
+  concurrent_users: number
+  total_users?:     number
+  buffer_pct?:      number
+  base_ip?:         string
+}
+
+export interface IpCalculatorResponse {
+  target_users:          number
+  concurrent_users:      number
+  total_users:           number
+  buffer_pct:            number
+  buffer_ips:            number
+  required_ips:          number
+  subnet_prefix_len:     number
+  total_ips:             number
+  usable_ips:            number
+  client_assignable_ips: number
+  efficiency_pct:        number
+  subnet_cidr?:          string | null
+  gateway_ip?:           string | null
+  gateway_cidr?:         string | null
+  dhcp_range_start?:     string | null
+  dhcp_range_end?:       string | null
+  broadcast_ip?:         string | null
+}
+
+export interface NetworkProvisionPayload {
+  instance_id:         number
+  interface:           string
+  svlan:               number
+  cvlan:               number
+  wan_interface?:      string
+  subnet_cidr:         string
+  gateway_ip:          string
+  dhcp_range_start:    string
+  dhcp_range_end:      string
+  dhcp_lease_time?:    number
+  dhcp_subnet_id?:     number | null
+  dns_forward_enabled?: boolean
+  domain_forwards?:    Array<{ domain: string; nameserver: string }>
+  qos_mode?:           string
+  max_bandwidth?:      string
+}
+
+export interface NetworkProvisionResponse {
+  customer_id:  number
+  company_name: string
+  status:       string
+  instance_id:  number
+  subnet_cidr:  string
+  gateway_ip:   string
+  dhcp_range:   string
+  vyos_result:  Record<string, unknown>
+  message:      string
+}
+
+export interface DhcpSetupPayload {
+  shared_network_name: string
+  subnet_cidr:         string
+  gateway_ip:          string
+  dhcp_start:          string
+  dhcp_end:            string
+  lease_time?:         number
+  subnet_id?:          number | null
+  dns_server?:         string | null
+}
+
+export interface DnsSetupPayload {
+  listen_addresses: string[]
+  allow_from_cidrs: string[]
+  cache_size?:      number
+  domain_forwards?: Array<{ domain: string; nameserver: string }>
+}
+
+export interface IpSubnetAllocation {
+  id:           number
+  pool_id:      number
+  customer_id:  number | null
+  subnet_cidr:  string
+  is_released:  boolean
+  notes:        string
+  allocated_at: string
+}
+
+export interface IpSubnetPool {
+  id:            number
+  instance_id:   number
+  supernet_cidr: string
+  description:   string
+  is_active:     boolean
+  created_at:    string
+  updated_at:    string
+  allocations?:  IpSubnetAllocation[]
+}
+
+export interface IpSubnetPoolCreate {
+  instance_id:   number
+  supernet_cidr: string
+  description?:  string
+  is_active?:    boolean
 }
 
 // ── NOC ───────────────────────────────────────────────────────────────
@@ -486,6 +636,103 @@ export interface InstanceRead {
   created_at?: string
   updated_at?: string
   ssh_port?: number
+}
+
+export interface RouterTenantInfo {
+  id: number
+  company_name: string
+  status: string
+  interface: string
+  svlan: number
+  cvlan?: number | null
+  subnet_cidr?: string | null
+  gateway_ip?: string | null
+  dhcp_range?: string | null
+  max_bandwidth?: string
+  qos_mode?: string
+  slug?: string | null
+  is_unmanaged?: boolean
+}
+
+export interface InstanceTopologyResponse {
+  instance_id: number
+  name?: string | null
+  identifier?: string | null
+  host?: string | null
+  ssh_port: number
+  wan_interface: string
+  wan_max_bandwidth: string
+  svlan: number
+  cvlan_start: number
+  cvlan_end: number
+  allocated_cvlans: number[]
+  next_available_cvlan?: number | null
+  supernet_cidr: string
+  allocated_subnets: string[]
+  total_tenants: number
+  total_committed_mbps: number
+  available_interfaces: string[]
+  tenants: RouterTenantInfo[]
+  unmanaged_count?: number
+}
+
+export interface UnintegratedCustomer {
+  instance_id: number
+  name: string
+  slug: string
+  user_account?: string | null
+  qinq_interface: string
+  wan_interface: string
+  svlan: number
+  cvlan?: number | null
+  start_ip?: string | null
+  end_ip?: string | null
+  suggested_subnet_cidr?: string | null
+  suggested_gateway_ip?: string | null
+  suggested_circle_id?: number | null
+  suggested_circle_code?: string | null
+  suggested_ba_id?: number | null
+  suggested_ba_code?: string | null
+  customer_type?: string
+  is_active: boolean
+  contact_person?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+}
+
+export interface AdoptCustomerPayload {
+  instance_id: number
+  slug: string
+  circle_id: number
+  business_area_id: number
+  company_name: string
+  gstin?: string
+  cin?: string
+  contact_person: string
+  contact_email: string
+  contact_phone: string
+  subnet_cidr?: string
+  gateway_ip?: string
+  dhcp_range_start?: string
+  dhcp_range_end?: string
+  max_bandwidth?: string
+  qinq_interface?: string
+  wan_interface?: string
+  svlan?: number
+  cvlan?: number
+  customer_type?: string
+}
+
+export interface AdoptCustomerResponse {
+  customer_id: number
+  company_name: string
+  slug: string
+  instance_id: number
+  status: string
+  subnet_cidr: string
+  gateway_ip: string
+  cvlan?: number | null
+  message: string
 }
 
 export interface HealthResponse {
@@ -635,6 +882,28 @@ export interface PendingRegistrationsResponse {
   pending_requests: PendingRegistrationItem[]
 }
 
+export interface FaultCheckResponse {
+  customer_id: number
+  captive_instance_id: number | null
+  captive_customer_slug: string | null
+  overall: 'healthy' | 'degraded' | 'down'
+  checks: {
+    db_status: { status: 'ok' | 'inactive' }
+    nftables: { status: 'ok' | 'error' | 'unknown'; detail?: string | null }
+    tc_qos: { status: 'ok' | 'no_qdisc' | 'error'; detail?: string | null }
+    active_sessions: { count: number; note?: string; error?: string }
+    auth_failures_24h: { count: number; error?: string | null }
+  }
+}
+
+export interface InterfaceSetupRequest {
+  interface: string
+  svlan: number
+  cvlan: number
+  ip_cidr: string
+}
+
+
 // ── EB ────────────────────────────────────────────────────────────────
 
 export interface EBDashboardStats {
@@ -735,7 +1004,9 @@ export interface RouterProposalCreate {
 }
 
 export interface RouterProposalUpdate {
+  identifier?: string
   name?: string
+  proposed_instance_id?: number
   ba_id?: number
   circle_id?: number
   svlan_allocation_id?: number | null
@@ -755,8 +1026,11 @@ export interface RouterProposalUpdate {
 }
 
 export interface RouterProposalApprove {
-  captive_db_dsn: string
-  nat_db_dsn: string
+  captive_db_dsn?: string
+  nat_db_dsn?: string
+  name?: string
+  proposed_instance_id?: number
+  identifier?: string
 }
 
 export interface RouterProposalReject {

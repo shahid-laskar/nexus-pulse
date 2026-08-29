@@ -90,98 +90,119 @@ export function ProfilePage() {
 
   if (!user) {
     return (
-      <div>
-        <PageHeader title="Profile Settings" />
-        <Card><CardBody>No profile details found.</CardBody></Card>
+      <div className="space-y-6">
+        <PageHeader title="Profile Settings" subtitle="Account details" />
+        <div className="p-4 lg:p-8 max-w-4xl">
+          <Card className="border-slate-200 shadow-2xs">
+            <CardBody className="p-6 text-slate-500 text-xs">No profile details found.</CardBody>
+          </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <PageHeader title="My Profile & Settings" description="Manage your account details and password." />
+    <div className="min-h-screen bg-slate-50">
+      <PageHeader
+        title="My Profile & Security Settings"
+        subtitle="Manage your personal details, regional jurisdiction, and password credentials"
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* User Details */}
-        <Card>
-          <CardHeader>Account Details</CardHeader>
-          <CardBody className="space-y-4">
-            <div>
-              <span className="text-xs text-slate-500 uppercase tracking-wide font-bold">Username</span>
-              <p className="text-foreground font-medium">{user.username}</p>
-            </div>
-            <div>
-              <span className="text-xs text-slate-500 uppercase tracking-wide font-bold">Full Name</span>
-              <p className="text-foreground font-medium">{user.full_name}</p>
-            </div>
-            <div>
-              <span className="text-xs text-slate-500 uppercase tracking-wide font-bold">Email</span>
-              <p className="text-foreground font-medium">{user.email || '—'}</p>
-            </div>
-            <div>
-              <span className="text-xs text-slate-500 uppercase tracking-wide font-bold">Role</span>
-              <p className="text-foreground font-medium">{user.profile.role.name}</p>
-            </div>
-            {user.profile.circle && (
+      <div className="p-6 lg:p-8 max-w-5xl space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* User Details */}
+          <Card className="border-slate-200 shadow-2xs">
+            <CardHeader className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <span className="text-xs font-bold text-slate-900">Account Identity</span>
+            </CardHeader>
+            <CardBody className="p-5 space-y-4 text-xs">
               <div>
-                <span className="text-xs text-slate-500 uppercase tracking-wide font-bold">Circle</span>
-                <p className="text-foreground font-medium">{user.profile.circle.name} ({user.profile.circle.code})</p>
+                <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Username</span>
+                <p className="text-slate-900 font-bold text-sm mt-0.5">{user.username}</p>
               </div>
-            )}
-            {user.profile.business_area && (
               <div>
-                <span className="text-xs text-slate-500 uppercase tracking-wide font-bold">Business Area</span>
-                <p className="text-foreground font-medium">{user.profile.business_area.name} ({user.profile.business_area.code})</p>
+                <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Full Name</span>
+                <p className="text-slate-800 font-semibold mt-0.5">{user.full_name || '—'}</p>
               </div>
-            )}
-            <div>
-              <span className="text-xs text-slate-500 uppercase tracking-wide font-bold">Designation</span>
-              <p className="text-foreground font-medium">{user.profile.designation || '—'}</p>
-            </div>
-            <div>
-              <span className="text-xs text-slate-500 uppercase tracking-wide font-bold">Mobile</span>
-              <p className="text-foreground font-medium">{user.profile.mobile || '—'}</p>
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Change Password */}
-        <Card>
-          <CardHeader>Change Password</CardHeader>
-          <CardBody>
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 text-red-700 text-sm rounded border border-red-200">
-                  {error}
+              <div>
+                <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Email Address</span>
+                <p className="text-slate-800 font-mono mt-0.5">{user.email || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Assigned Role</span>
+                <p className="text-slate-800 font-semibold mt-0.5">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-bold">
+                    {user.profile.role.name}
+                  </span>
+                </p>
+              </div>
+              {user.profile.circle && (
+                <div>
+                  <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Circle Scope</span>
+                  <p className="text-slate-800 font-medium mt-0.5">{user.profile.circle.name} ({user.profile.circle.code})</p>
                 </div>
               )}
-              <Input
-                label="Current Password"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-              />
-              <Input
-                label="New Password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-              <Input
-                label="Confirm New Password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-              <Button type="submit" isLoading={isSubmitting} className="w-full">
-                Update Password
-              </Button>
-            </form>
-          </CardBody>
-        </Card>
+              {user.profile.business_area && (
+                <div>
+                  <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Business Area</span>
+                  <p className="text-slate-800 font-medium mt-0.5">{user.profile.business_area.name} ({user.profile.business_area.code})</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                <div>
+                  <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Designation</span>
+                  <p className="text-slate-700 mt-0.5">{user.profile.designation || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Mobile</span>
+                  <p className="text-slate-700 font-mono mt-0.5">{user.profile.mobile || '—'}</p>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Change Password */}
+          <Card className="border-slate-200 shadow-2xs">
+            <CardHeader className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <span className="text-xs font-bold text-slate-900">Change Password</span>
+            </CardHeader>
+            <CardBody className="p-5">
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                {error && (
+                  <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-lg border border-rose-200">
+                    {error}
+                  </div>
+                )}
+                <Input
+                  label="Current Password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                />
+                <Input
+                  label="New Password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Confirm New Password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+                <div className="pt-2">
+                  <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting} className="w-full h-8.5 text-xs">
+                    Update Password
+                  </Button>
+                </div>
+              </form>
+            </CardBody>
+          </Card>
+        </div>
       </div>
     </div>
   )

@@ -37,6 +37,11 @@ export const ebApi = {
     return res.data
   },
 
+  unmarkReady: async (id: number): Promise<MarkReadyResponse> => {
+    const res = await api.post<MarkReadyResponse>(`/eb/customers/${id}/unmark-ready/`)
+    return res.data
+  },
+
   deactivate: async (id: number): Promise<void> => {
     await api.delete(`/eb/customers/${id}/`)
   },
@@ -65,6 +70,39 @@ export const ebApi = {
     const res = await api.post<{ legal_doc_url: string }>(`/eb/customers/${id}/legal-doc/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
+    return res.data
+  },
+
+  // ── Legal Compliance Documents (ToS / Privacy / FUP) ──────────────────
+
+  listLegalDocs: async (customerId: number): Promise<{ legal_documents: Array<{ id: number; doc_type: string; title: string; version: number; is_active: boolean; body_html?: string; effective_date?: string; requires_reacceptance?: boolean }> }> => {
+    const res = await api.get(`/eb/customers/${customerId}/legal-documents/`)
+    return res.data
+  },
+
+  getLegalDoc: async (customerId: number, docType: string): Promise<{ id: number; doc_type: string; title: string; version: number; body_html: string; effective_date?: string; requires_reacceptance?: boolean }> => {
+    const res = await api.get(`/eb/customers/${customerId}/legal-documents/${docType}/`)
+    return res.data
+  },
+
+  updateLegalDoc: async (
+    customerId: number,
+    docType: string,
+    data: { title?: string; body_html?: string; effective_date?: string; requires_reacceptance?: boolean }
+  ): Promise<any> => {
+    const res = await api.put(`/eb/customers/${customerId}/legal-documents/${docType}/`, data)
+    return res.data
+  },
+
+  // ── Bandwidth Profiles (Bronze, Silver, Gold, Platinum & LAN-Only) ────
+
+  listProfiles: async (customerId: number): Promise<{ customer_id: number; profiles: any[] }> => {
+    const res = await api.get(`/eb/customers/${customerId}/profiles/`)
+    return res.data
+  },
+
+  updateProfile: async (customerId: number, profileName: string, data: any): Promise<any> => {
+    const res = await api.put(`/eb/customers/${customerId}/profiles/${profileName}/`, data)
     return res.data
   },
 

@@ -99,30 +99,38 @@ export function UserCreatePage() {
 
   if (!allowedRoles.length) {
     return (
-      <div>
-        <PageHeader title="Create User" />
-        <div className="p-8 text-muted-foreground">Your role cannot create users.</div>
+      <div className="min-h-screen bg-slate-50">
+        <PageHeader title="Create User" subtitle="New portal account" />
+        <div className="p-6 lg:p-8 max-w-3xl">
+          <Card className="border-slate-200 shadow-2xs">
+            <CardBody className="p-6 text-slate-500 text-xs">
+              Your role is not authorized to provision new user accounts.
+            </CardBody>
+          </Card>
+        </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <PageHeader title="Create User" subtitle="New portal account" />
-      <div className="p-8 max-w-2xl">
+    <div className="min-h-screen bg-slate-50">
+      <PageHeader
+        title="Create User Account"
+        subtitle="Provision a new administrative account within your regional scope"
+      />
+      <div className="p-6 lg:p-8 max-w-3xl">
         <form onSubmit={handleSubmit((d) => create.mutate(d))}>
-          <Card>
-            <CardBody className="flex flex-col gap-5">
-
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-hairline">
-                Account
+          <Card className="border-slate-200 shadow-2xs">
+            <CardBody className="p-6 flex flex-col gap-5">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 pb-1.5 border-b border-slate-100">
+                Account Credentials
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Username *" error={errors.username?.message}   {...register('username')} />
+                <Input label="Username *" error={errors.username?.message} {...register('username')} />
                 <Input label="Password *" type="password" error={errors.password?.message} {...register('password')} />
               </div>
 
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-hairline">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 pb-1.5 border-b border-slate-100 mt-2">
                 Personal Details
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -132,8 +140,8 @@ export function UserCreatePage() {
                 <Input label="Mobile"       error={errors.mobile?.message}     {...register('mobile')} />
               </div>
 
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-1 border-b border-hairline">
-                Role &amp; Scope
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 pb-1.5 border-b border-slate-100 mt-2">
+                Role &amp; Jurisdiction
               </div>
 
               <Select
@@ -167,15 +175,18 @@ export function UserCreatePage() {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Personnel No." hint="8-digit perno" {...register('personnel_no')} />
-                <Input label="Designation"   {...register('designation')} />
+                <Input label="Personnel No." hint="8-digit BSNL perno" {...register('personnel_no')} />
+                <Input label="Designation" placeholder="e.g. SDE, AGM" {...register('designation')} />
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button type="submit" loading={create.isPending}>Create User</Button>
-                <Button type="button" variant="secondary" onClick={() => navigate('/users')}>Cancel</Button>
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                <Button type="submit" variant="primary" size="sm" loading={create.isPending} className="h-8 text-xs">
+                  Create User
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={() => navigate('/users')} className="h-8 text-xs">
+                  Cancel
+                </Button>
               </div>
-
             </CardBody>
           </Card>
         </form>

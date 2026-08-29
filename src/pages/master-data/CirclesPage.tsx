@@ -72,13 +72,13 @@ function AddPoolModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
         <div className="p-6">
           <h3 className="text-lg font-bold text-slate-900 mb-1">
             Add VLAN Pool — {circle.name} ({circle.code})
           </h3>
-          <p className="text-xs text-muted-foreground mb-4">
+          <p className="text-xs text-slate-500 mb-4">
             Configure allowed SVLAN and CVLAN boundaries for this circle.
           </p>
 
@@ -163,13 +163,13 @@ function CircleVlanPoolsSection({ circle }: { circle: CircleRead }) {
   })
 
   return (
-    <div className="p-4 bg-surface-1/40 border-t border-hairline rounded-b-md">
+    <div className="p-4 bg-slate-50 border-t border-slate-200 rounded-b-md">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
             VLAN Pools for {circle.name} ({circle.code})
           </span>
-          <span className="text-xs text-muted-foreground">({pools?.length || 0} pools)</span>
+          <span className="text-xs text-slate-500">({pools?.length || 0} pools)</span>
         </div>
         <Button size="xs" variant="primary" onClick={() => setShowAddModal(true)}>
           ➕ Add Pool
@@ -181,30 +181,30 @@ function CircleVlanPoolsSection({ circle }: { circle: CircleRead }) {
           <Spinner className="h-5 w-5" />
         </div>
       ) : !pools?.length ? (
-        <div className="text-xs text-muted-foreground italic py-2">
+        <div className="text-xs text-slate-500 italic py-2">
           No VLAN pools configured for this circle yet. Click &quot;Add Pool&quot; to define ranges.
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border border-hairline rounded">
-            <thead className="bg-surface-2">
+          <table className="w-full text-xs text-left border border-slate-200 rounded">
+            <thead className="bg-slate-100">
               <tr>
-                <th className="p-2 border-b border-hairline font-semibold">SVLAN Range</th>
-                <th className="p-2 border-b border-hairline font-semibold">CVLAN Range</th>
-                <th className="p-2 border-b border-hairline font-semibold">Created</th>
-                <th className="p-2 border-b border-hairline font-semibold text-right">Actions</th>
+                <th className="p-2 border-b border-slate-200 font-semibold">SVLAN Range</th>
+                <th className="p-2 border-b border-slate-200 font-semibold">CVLAN Range</th>
+                <th className="p-2 border-b border-slate-200 font-semibold">Created</th>
+                <th className="p-2 border-b border-slate-200 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {pools.map(p => (
-                <tr key={p.id} className="border-b border-hairline hover:bg-surface-2/40">
+                <tr key={p.id} className="border-b border-slate-200 hover:bg-slate-50">
                   <td className="p-2 font-mono font-medium">
                     {p.svlan_range_start} – {p.svlan_range_end}
                   </td>
-                  <td className="p-2 font-mono text-muted-foreground">
+                  <td className="p-2 font-mono text-slate-500">
                     {p.cvlan_range_start} – {p.cvlan_range_end}
                   </td>
-                  <td className="p-2 text-muted-foreground">
+                  <td className="p-2 text-slate-500">
                     {new Date(p.created_at).toLocaleDateString()}
                   </td>
                   <td className="p-2 text-right">
@@ -292,16 +292,16 @@ export function CirclesPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-50">
       <PageHeader
         title="Circles"
         subtitle="BSNL telecom circles"
       />
-      <div className="p-8 flex flex-col gap-6">
+      <div className="p-6 lg:p-8 space-y-6 max-w-[1680px]">
         {editingCircle && (
           <Card className="max-w-md border-amber-200 bg-amber-50/20">
             <CardHeader>
-              <h3 className="font-semibold text-foreground">Edit Circle: {editingCircle.code}</h3>
+              <h3 className="font-semibold text-slate-900">Edit Circle: {editingCircle.code}</h3>
             </CardHeader>
             <CardBody>
               <form
@@ -356,10 +356,10 @@ export function CirclesPage() {
                   const isExpanded = expandedCircleId === c.id
                   return (
                     <React.Fragment key={c.id}>
-                      <tr className={`hover:bg-surface-2/50 ${isExpanded ? 'bg-surface-2/30' : ''}`}>
+                      <tr className={`hover:bg-slate-50 ${isExpanded ? 'bg-slate-50' : ''}`}>
                         <Td className="font-semibold">{c.name}</Td>
                         <Td>
-                          <code className="text-xs bg-surface-2 text-foreground border border-hairline px-2 py-0.5 rounded">
+                          <code className="text-xs bg-slate-100 text-slate-900 border border-slate-200 px-2 py-0.5 rounded">
                             {c.code}
                           </code>
                         </Td>
@@ -375,13 +375,13 @@ export function CirclesPage() {
                             className={`text-xs font-semibold px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 ${
                               c.is_active
                                 ? 'bg-green-100 text-green-700'
-                                : 'bg-surface-2 text-foreground border border-hairline text-gray-500'
+                                : 'bg-slate-100 text-slate-900 border border-slate-200 text-gray-500'
                             }`}
                           >
                             {c.is_active ? 'Active' : 'Inactive'}
                           </button>
                         </Td>
-                        <Td className="text-muted-foreground text-xs">
+                        <Td className="text-slate-500 text-xs">
                           {new Date(c.created_at).toLocaleDateString()}
                         </Td>
                         <Td>
@@ -403,7 +403,7 @@ export function CirclesPage() {
                       </tr>
                       {isExpanded && isSuper && (
                         <tr>
-                          <td colSpan={5} className="p-0 border-b border-hairline">
+                          <td colSpan={5} className="p-0 border-b border-slate-200">
                             <CircleVlanPoolsSection circle={c} />
                           </td>
                         </tr>

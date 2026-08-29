@@ -80,6 +80,11 @@ export const customersApi = {
     return res.data
   },
 
+  unmarkReady: async (id: number): Promise<CustomerRead> => {
+    const res = await api.post<CustomerRead>(`/admin/customers/${id}/unmark-ready/`)
+    return res.data
+  },
+
   deactivate: async (id: number): Promise<void> => {
     await api.delete(`/admin/customers/${id}/`)
   },
@@ -90,6 +95,13 @@ export const customersApi = {
 export const vlanPoolsApi = {
   list: async (circleId: number): Promise<CircleVlanPool[]> => {
     const res = await api.get<CircleVlanPool[]>(`/admin/circles/${circleId}/vlan-pools/`)
+    return res.data
+  },
+
+  listAll: async (circleId?: number): Promise<CircleVlanPool[]> => {
+    const res = await api.get<CircleVlanPool[]>('/admin/vlan-pools/', {
+      params: circleId ? { circle_id: circleId } : undefined,
+    })
     return res.data
   },
 
@@ -111,6 +123,16 @@ export const baSvlanAllocationsApi = {
     return res.data
   },
 
+  listAll: async (params?: { circleId?: number; baId?: number }): Promise<BASvlanAllocation[]> => {
+    const res = await api.get<BASvlanAllocation[]>('/admin/svlan-allocations/', {
+      params: {
+        circle_id: params?.circleId,
+        ba_id: params?.baId,
+      },
+    })
+    return res.data
+  },
+
   create: async (baId: number, data: BASvlanAllocationCreate): Promise<BASvlanAllocation> => {
     const res = await api.post<BASvlanAllocation>(`/admin/business-areas/${baId}/svlan-allocations/`, data)
     return res.data
@@ -120,4 +142,5 @@ export const baSvlanAllocationsApi = {
     await api.delete(`/admin/business-areas/${baId}/svlan-allocations/${allocId}/`)
   },
 }
+
 

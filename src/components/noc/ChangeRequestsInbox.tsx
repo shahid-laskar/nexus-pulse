@@ -613,16 +613,16 @@ export function ChangeRequestsInbox({ onCustomerSelect, embedded = false }: Chan
 
       {/* Reject Modal */}
       {isRejectOpen && selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-150">
-            <div className="bg-rose-900 text-white px-6 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <XCircle className="w-5 h-5 text-rose-300" />
-                <h3 className="text-base font-bold">Reject Change Request #{selectedRequest.id}</h3>
+                <XCircle className="w-5 h-5 text-rose-600" />
+                <h3 className="text-base font-bold text-slate-900">Reject Change Request #{selectedRequest.id}</h3>
               </div>
               <button
                 onClick={() => setIsRejectOpen(false)}
-                className="text-rose-200 hover:text-white p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -658,7 +658,7 @@ export function ChangeRequestsInbox({ onCustomerSelect, embedded = false }: Chan
               </div>
             </div>
 
-            <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-2.5">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -671,11 +671,11 @@ export function ChangeRequestsInbox({ onCustomerSelect, embedded = false }: Chan
                 variant="danger"
                 size="sm"
                 onClick={handleConfirmReject}
-                isLoading={rejectMutation.isPending}
-                className="gap-1.5"
+                loading={rejectMutation.isPending}
+                className="gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
               >
-                <XCircle className="w-3.5 h-3.5" />
-                Confirm Rejection
+                <XCircle className="w-4 h-4" />
+                Reject Request
               </Button>
             </div>
           </div>
@@ -684,16 +684,16 @@ export function ChangeRequestsInbox({ onCustomerSelect, embedded = false }: Chan
 
       {/* Return for Info Modal */}
       {isReturnOpen && selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-150">
-            <div className="bg-purple-900 text-white px-6 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <RotateCcw className="w-5 h-5 text-purple-300" />
-                <h3 className="text-base font-bold">Return for Clarification #{selectedRequest.id}</h3>
+                <RotateCcw className="w-5 h-5 text-purple-600" />
+                <h3 className="text-base font-bold text-slate-900">Return for Clarification #{selectedRequest.id}</h3>
               </div>
               <button
                 onClick={() => setIsReturnOpen(false)}
-                className="text-purple-200 hover:text-white p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -838,29 +838,29 @@ function VisualDiffModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-150 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
           <div>
             <div className="flex items-center gap-2.5">
-              <h2 className="text-lg font-bold">Change Request #{request.id}</h2>
+              <h2 className="text-base font-bold text-slate-900">Change Request #{request.id}</h2>
               <ChangeRequestTypeBadge type={request.request_type} />
               <ChangeRequestStatusBadge status={request.status} />
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Customer: <strong className="text-slate-200">{customer?.company_name || `ID #${request.customer_id}`}</strong> • Submitted:{' '}
+            <p className="text-xs text-slate-500 mt-1">
+              Customer: <strong className="text-slate-800">{customer?.company_name || `ID #${request.customer_id}`}</strong> • Submitted:{' '}
               {request.requested_at ? new Date(request.requested_at).toLocaleString() : '—'}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="bg-slate-800 p-0.5 rounded-lg border border-slate-700 flex text-xs">
+            <div className="bg-slate-100 p-0.5 rounded-lg border border-slate-200 flex text-xs">
               <button
                 onClick={() => setActiveTab('visual')}
                 className={cn(
-                  'px-3 py-1 rounded-md font-medium transition-colors',
-                  activeTab === 'visual' ? 'bg-primary text-white shadow-2xs' : 'text-slate-400 hover:text-white'
+                  'px-3 py-1 rounded-md font-semibold transition-colors',
+                  activeTab === 'visual' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                 )}
               >
                 Visual Diff
@@ -868,8 +868,8 @@ function VisualDiffModal({
               <button
                 onClick={() => setActiveTab('json')}
                 className={cn(
-                  'px-3 py-1 rounded-md font-medium transition-colors flex items-center gap-1',
-                  activeTab === 'json' ? 'bg-primary text-white shadow-2xs' : 'text-slate-400 hover:text-white'
+                  'px-3 py-1 rounded-md font-semibold transition-colors flex items-center gap-1',
+                  activeTab === 'json' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                 )}
               >
                 <Code2 className="w-3.5 h-3.5" />
@@ -879,9 +879,9 @@ function VisualDiffModal({
 
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

@@ -8,6 +8,12 @@ import type {
   RouterProposal, RouterProposalCreate, RouterProposalUpdate,
   RouterProposalApprove, RouterProposalReject, RouterProposalReturn,
   ChangeRequest, ChangeRequestReview,
+  IpCalculatorRequest, IpCalculatorResponse,
+  NetworkProvisionPayload, NetworkProvisionResponse,
+  DhcpSetupPayload, DnsSetupPayload,
+  IpSubnetPool, IpSubnetPoolCreate,
+  InstanceTopologyResponse,
+  UnintegratedCustomer, AdoptCustomerPayload, AdoptCustomerResponse,
 } from '@/types'
 
 export const nocApi = {
@@ -24,11 +30,25 @@ export const nocApi = {
       ...inst,
       id: inst.instance_id ?? inst.id ?? 1,
       instance_id: inst.instance_id ?? inst.id ?? 1,
+      host: inst.network?.vyos_ip || inst.host || inst.vyos_ip || '',
+      ssh_port: inst.auth?.ssh_port || inst.ssh_port || 22,
     }))
   },
 
   getInstance: async (instanceId: number): Promise<InstanceRead> => {
-    const res = await api.get<InstanceRead>(`/noc/instances/${instanceId}/`)
+    const res = await api.get<any>(`/noc/instances/${instanceId}/`)
+    const inst = res.data
+    return {
+      ...inst,
+      id: inst.instance_id ?? inst.id ?? instanceId,
+      instance_id: inst.instance_id ?? inst.id ?? instanceId,
+      host: inst.network?.vyos_ip || inst.host || inst.vyos_ip || '',
+      ssh_port: inst.auth?.ssh_port || inst.ssh_port || 22,
+    }
+  },
+
+  getInstanceTopology: async (instanceId: number): Promise<InstanceTopologyResponse> => {
+    const res = await api.get<InstanceTopologyResponse>(`/noc/instances/${instanceId}/topology/`)
     return res.data
   },
 
@@ -39,6 +59,11 @@ export const nocApi = {
 
   deboard: async (customerId: number): Promise<DeBoardResponse> => {
     const res = await api.post<DeBoardResponse>(`/noc/customers/${customerId}/deboard/`)
+    return res.data
+  },
+
+  rollbackNetwork: async (customerId: number): Promise<{ customer_id: number; company_name: string; message: string }> => {
+    const res = await api.post<{ customer_id: number; company_name: string; message: string }>(`/noc/customers/${customerId}/rollback-network/`)
     return res.data
   },
 
@@ -219,7 +244,7 @@ export const nocApi = {
 
   updateRouterProposal: async (
     id: number,
-    data: Partial<RouterProposalCreate>
+    data: RouterProposalUpdate
   ): Promise<RouterProposal> => {
     const res = await api.put<RouterProposal>(`/noc/router-proposals/${id}/`, data)
     return res.data
@@ -281,4 +306,85 @@ export const nocApi = {
     const res = await api.post<ChangeRequest>(`/noc/change-requests/${reqId}/return/`, data)
     return res.data
   },
+
+  // ── Fault Localization & Interface Provisioning ─────────────────────
+
+  faultCheck: async (customerId: number): Promise<any> => {
+    const res = await api.get(`/noc/customers/${customerId}/fault-check/`)
+    return res.data
+  },
+
+  setupInterface: async (
+    instanceId: number,
+    payload: { interface: string; svlan: number; cvlan: number; ip_cidr: string }
+  ): Promise<any> => {
+    const res = await api.post(`/noc/instances/${instanceId}/interface-setup/`, payload)
+    return res.data
+  },
+
+  // ── IP Calculator & Network Provisioning ───────────────────────────
+
+  calculateIpPool: async (payload: IpCalculatorRequest): Promise<IpCalculatorResponse> => {
+    const res = await api.post<IpCalculatorResponse>('/noc/ip-calculator/', payload)
+    return res.data
+  },
+
+  getNextSubnet: async (
+    instanceId: number,
+    params?: { concurrent_users?: number; total_users?: number; buffer_pct?: number }
+  ): Promise<IpCalculatorResponse & { supernet_cidr: string; instance_id: number }> => {
+    const res = await api.get<IpCalculatorResponse & { supernet_cidr: string; instance_id: number }>(
+      `/noc/instances/${instanceId}/next-subnet/`,
+      { params }
+    )
+    return res.data
+  },
+
+  provisionCustomerNetwork: async (
+    customerId: number,
+    payload: NetworkProvisionPayload
+  ): Promise<NetworkProvisionResponse> => {
+    const res = await api.post<NetworkProvisionResponse>(
+      `/noc/customers/${customerId}/provision-network/`,
+      payload,
+      { timeout: 120_000 }
+    )
+    return res.data
+  },
+
+  setupDhcp: async (instanceId: number, payload: DhcpSetupPayload): Promise<any> => {
+    const res = await api.post(`/noc/instances/${instanceId}/dhcp-setup/`, payload)
+    return res.data
+  },
+
+  setupDns: async (instanceId: number, payload: DnsSetupPayload): Promise<any> => {
+    const res = await api.post(`/noc/instances/${instanceId}/dns-setup/`, payload)
+    return res.data
+  },
+
+  listIpPools: async (instanceId?: number): Promise<IpSubnetPool[]> => {
+    const res = await api.get<IpSubnetPool[]>('/noc/ip-pools/', { params: { instance_id: instanceId } })
+    return res.data
+  },
+
+  createIpPool: async (payload: IpSubnetPoolCreate): Promise<IpSubnetPool> => {
+    const res = await api.post<IpSubnetPool>('/noc/ip-pools/', payload)
+    return res.data
+  },
+
+  deleteIpPool: async (poolId: number): Promise<void> => {
+    await api.delete(`/noc/ip-pools/${poolId}/`)
+  },
+
+  getUnintegratedCustomers: async (instanceId: number): Promise<UnintegratedCustomer[]> => {
+    const res = await api.get<UnintegratedCustomer[]>(`/noc/instances/${instanceId}/unintegrated-customers/`)
+    return res.data
+  },
+
+  adoptCustomer: async (payload: AdoptCustomerPayload): Promise<AdoptCustomerResponse> => {
+    const res = await api.post<AdoptCustomerResponse>('/noc/customers/adopt/', payload)
+    return res.data
+  },
 }
+
+

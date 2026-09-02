@@ -24,6 +24,7 @@ import { NOCProvisioningPage } from '@/pages/noc/NOCProvisioningPage'
 import { RouterProposalsPage } from '@/pages/noc/RouterProposalsPage'
 import { RouterProposalFormPage } from '@/pages/noc/RouterProposalFormPage'
 import { RouterApprovalsPage } from '@/pages/admin/RouterApprovalsPage'
+import { IPDRCompliancePage } from '@/pages/admin/IPDRCompliancePage'
 import { NocAlarmsPage }      from '@/pages/noc/NocAlarmsPage'
 import { PendingRegistrationsPage } from '@/pages/noc/PendingRegistrationsPage'
 import { SessionsPage }       from '@/pages/noc/SessionsPage'
@@ -77,6 +78,7 @@ const router = createBrowserRouter([
       { path: 'customers/:id',         element: <EBCustomerDetailPage /> },
       { path: 'customers/:id/edit',    element: <EBCustomerFormPage /> },
       { path: 'admin/router-approvals', element: <RouterApprovalsPage /> },
+      { path: 'admin/ipdr',            element: <IPDRCompliancePage /> },
 
       // NOC
       { path: 'noc',                              element: <Navigate to="/noc/operations" replace /> },

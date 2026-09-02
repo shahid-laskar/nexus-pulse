@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import { 
   Zap, LayoutDashboard, Globe, Building, Users, User, UserPlus, 
   Siren, Wifi, LineChart, Briefcase, ClipboardList, Settings, LogOut, UserCheck, Router,
-  ShieldCheck, Server, GitPullRequest, Activity, Layers
+  ShieldCheck, ShieldAlert, Server, GitPullRequest, Activity, Layers
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -70,6 +70,7 @@ export function Sidebar() {
             )}
             {!canAccessEB && <NavItem to="/customers" icon={Users} label="Customers" />}
             {isSuper && <NavItem to="/admin/router-approvals" icon={ShieldCheck} label="Router Approvals" />}
+            {isSuper && <NavItem to="/admin/ipdr" icon={ShieldAlert} label="IPDR Compliance" />}
           </NavSection>
         )}
 

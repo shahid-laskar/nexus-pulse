@@ -1109,3 +1109,77 @@ export interface AuditLogListResponse {
   total: number
   items: AuditLog[]
 }
+
+// ── IPDR Compliance ───────────────────────────────────────────────────
+
+export interface SubscriberInfo {
+  phone_number?: string | null
+  mac_address?: string | null
+  username?: string | null
+  location?: string | null
+  session_start?: string | null
+  session_end?: string | null
+}
+
+export interface NATFlowRecord {
+  event_id: string
+  flow_start: string
+  flow_end?: string | null
+  vyos_instance: number
+  source_ip: string
+  source_port: number
+  public_ip: string
+  nat_port: number
+  dest_ip: string
+  dest_port: number
+  protocol: number
+  protocol_name?: string
+  bytes_orig: number
+  bytes_reply: number
+  subscriber?: SubscriberInfo | null
+}
+
+export interface SubscriberLookupParams {
+  source_ip: string
+  time_from: string
+  time_to: string
+  page?: number
+  page_size?: number
+}
+
+export interface PaginatedIPDRResponse {
+  items: NATFlowRecord[]
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+  has_next: boolean
+  has_prev: boolean
+  has_archive_overlap: boolean
+  query_execution_time_ms: number
+}
+
+export interface ReverseNATLookupParams {
+  public_ip: string
+  nat_port: number
+  timestamp: string
+  time_tolerance_seconds?: number
+}
+
+export interface ReverseNATResponse {
+  public_ip: string
+  nat_port: number
+  timestamp: string
+  matches: NATFlowRecord[]
+  total_matches: number
+  has_archive_overlap: boolean
+  query_execution_time_ms: number
+}
+
+export interface IPDRExportParams {
+  source_ip: string
+  time_from: string
+  time_to: string
+  limit?: number
+}
+

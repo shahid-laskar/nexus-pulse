@@ -5,6 +5,7 @@ import { usersApi } from '@/api/users'
 import { customersApi, circlesApi, businessAreasApi } from '@/api/master-data'
 import { ebApi } from '@/api/eb'
 import { nocApi } from '@/api/noc'
+import { ipdrApi } from '@/api/ipdr'
 
 describe('API Error Normalization', () => {
   it('extracts detail string error', () => {
@@ -115,4 +116,22 @@ describe('API Client Method Structures', () => {
     expect(typeof nocApi.rejectChangeRequest).toBe('function')
     expect(typeof nocApi.returnChangeRequest).toBe('function')
   })
+
+  it('defines all required ipdrApi methods and helpers', () => {
+    expect(typeof ipdrApi.subscriberLookup).toBe('function')
+    expect(typeof ipdrApi.reverseNatLookup).toBe('function')
+    expect(typeof ipdrApi.exportCsvUrl).toBe('function')
+    expect(typeof ipdrApi.downloadCsv).toBe('function')
+
+    const url = ipdrApi.exportCsvUrl({
+      source_ip: '10.99.99.2',
+      time_from: '2026-09-01T00:00:00Z',
+      time_to: '2026-09-02T00:00:00Z',
+      limit: 5000,
+    })
+    expect(url).toContain('/api/v1/admin/ipdr/export/?')
+    expect(url).toContain('source_ip=10.99.99.2')
+    expect(url).toContain('limit=5000')
+  })
 })
+

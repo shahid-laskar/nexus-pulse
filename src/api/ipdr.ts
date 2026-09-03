@@ -153,13 +153,14 @@ export const ipdrApi = {
    * Streams/downloads CSV blob directly via authenticated axios client.
    */
   downloadCsv: async (params: IPDRExportParams): Promise<Blob> => {
+    const queryParams: Record<string, unknown> = {
+      source_ip: params.source_ip,
+      limit: params.limit ?? 100000,
+    }
+    if (params.time_from) queryParams.time_from = params.time_from
+    if (params.time_to) queryParams.time_to = params.time_to
     const res = await api.get('/admin/ipdr/export/', {
-      params: {
-        source_ip: params.source_ip,
-        time_from: params.time_from,
-        time_to: params.time_to,
-        limit: params.limit ?? 100000,
-      },
+      params: queryParams,
       responseType: 'blob',
     })
     return res.data
@@ -240,8 +241,14 @@ export const ipdrApi = {
   exportRegulatoryReport: async (
     params: IPDRReportExportParams,
   ): Promise<{ blob: Blob; filename: string; sha256: string; reportId: string }> => {
+    const cleanParams: Record<string, unknown> = {}
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        cleanParams[key] = val
+      }
+    })
     const res = await api.get('/admin/ipdr/reports/export', {
-      params,
+      params: cleanParams,
       responseType: 'blob',
     })
     const disposition = (res.headers['content-disposition'] as string) || ''
@@ -264,7 +271,17 @@ export const ipdrApi = {
    * Enqueue an asynchronous export job.
    */
   createReportJob: async (payload: IPDRReportJobCreate): Promise<IPDRReportJobRead> => {
-    const res = await api.post<IPDRReportJobRead>('/admin/ipdr/reports/jobs/', payload)
+    const cleanQueryParams: Record<string, unknown> = {}
+    Object.entries(payload.query_parameters).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        cleanQueryParams[key] = val
+      }
+    })
+    const cleanPayload: IPDRReportJobCreate = {
+      ...payload,
+      query_parameters: cleanQueryParams,
+    }
+    const res = await api.post<IPDRReportJobRead>('/admin/ipdr/reports/jobs/', cleanPayload)
     return res.data
   },
 

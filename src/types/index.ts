@@ -1434,6 +1434,7 @@ export interface IPDRReportExportParams {
   time_from?: string
   time_to?: string
   time_tolerance_seconds?: number
+  vyos_instance_id?: number
   format: ReportFormat
   limit?: number
 }

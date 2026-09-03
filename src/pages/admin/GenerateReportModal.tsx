@@ -130,14 +130,15 @@ export const GenerateReportModal: React.FC<GenerateReportModalProps> = ({
         const exportParams: IPDRReportExportParams = {
           case_id: currentCase?.id,
           query_type: queryType,
-          source_ip: sourceIp,
-          public_ip: publicIp,
-          nat_port: natPort,
-          user_id: userId,
-          session_id: sessionId,
-          time_from: timeFrom,
-          time_to: timeTo,
-          time_tolerance_seconds: timeToleranceSeconds,
+          source_ip: sourceIp?.trim() || undefined,
+          public_ip: publicIp?.trim() || undefined,
+          nat_port: natPort || undefined,
+          user_id: userId || undefined,
+          session_id: sessionId?.trim() || undefined,
+          time_from: timeFrom?.trim() || undefined,
+          time_to: timeTo?.trim() || undefined,
+          time_tolerance_seconds: timeToleranceSeconds || undefined,
+          vyos_instance_id: vyosInstanceId || undefined,
           format: selectedFormat,
         }
 

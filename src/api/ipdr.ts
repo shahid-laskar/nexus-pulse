@@ -1,10 +1,15 @@
 import { api } from '@/lib/axios'
 import type {
+  HistoricalSessionRecord,
   IPDRExportParams,
   PaginatedIPDRResponse,
   ReverseNATLookupParams,
   ReverseNATResponse,
+  SubscriberIdentityProfile,
   SubscriberLookupParams,
+  SubscriberSearchQuery,
+  SubscriberSearchResponse,
+  SubscriberSessionsResponse,
 } from '@/types'
 
 export const ipdrApi = {
@@ -17,6 +22,7 @@ export const ipdrApi = {
         source_ip: params.source_ip,
         time_from: params.time_from,
         time_to: params.time_to,
+        vyos_instance_id: params.vyos_instance_id,
         page: params.page ?? 1,
         page_size: params.page_size ?? 100,
       },
@@ -34,6 +40,62 @@ export const ipdrApi = {
         nat_port: params.nat_port,
         timestamp: params.timestamp,
         time_tolerance_seconds: params.time_tolerance_seconds ?? 0,
+        vyos_instance_id: params.vyos_instance_id,
+      },
+    })
+    return res.data
+  },
+
+  /**
+   * Multi-identifier subscriber identity search (Task 5.3).
+   */
+  searchSubscribers: async (params: SubscriberSearchQuery): Promise<SubscriberSearchResponse> => {
+    const res = await api.get<SubscriberSearchResponse>('/admin/ipdr/subscribers/search/', {
+      params: {
+        query: params.query,
+        username: params.username,
+        phone: params.phone,
+        email: params.email,
+        mac_address: params.mac_address,
+        session_id: params.session_id,
+        ip_address: params.ip_address,
+        user_id: params.user_id,
+        customer_id: params.customer_id,
+        customer_name: params.customer_name,
+        vyos_instance_id: params.vyos_instance_id,
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 20,
+      },
+    })
+    return res.data
+  },
+
+  /**
+   * Get subscriber identity profile by user ID.
+   */
+  getSubscriberIdentity: async (userId: number): Promise<SubscriberIdentityProfile> => {
+    const res = await api.get<SubscriberIdentityProfile>(`/admin/ipdr/subscribers/${userId}/`)
+    return res.data
+  },
+
+  /**
+   * Get historical session timeline and IP assignment history for a subscriber.
+   */
+  getSubscriberSessions: async (
+    userId: number,
+    options?: {
+      page?: number
+      page_size?: number
+      time_from?: string
+      time_to?: string
+    },
+  ): Promise<SubscriberSessionsResponse> => {
+    const res = await api.get<SubscriberSessionsResponse>(`/admin/ipdr/subscribers/${userId}/sessions/`, {
+      params: {
+        page: options?.page ?? 1,
+        page_size: options?.page_size ?? 50,
+        time_from: options?.time_from,
+        time_to: options?.time_to,
       },
     })
     return res.data

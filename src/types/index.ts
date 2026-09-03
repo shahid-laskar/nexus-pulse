@@ -1110,15 +1110,121 @@ export interface AuditLogListResponse {
   items: AuditLog[]
 }
 
-// ── IPDR Compliance ───────────────────────────────────────────────────
+// ── IPDR Compliance & Identity Resolution (Task 5.3) ───────────────────
+
+export type CorrelationStatus =
+  | 'exact'
+  | 'multiple_matches'
+  | 'no_match'
+  | 'expired_session'
+  | 'missing_router_scope'
+  | 'ambiguous'
+  | 'data_incomplete'
 
 export interface SubscriberInfo {
-  phone_number?: string | null
-  mac_address?: string | null
+  user_id?: number | null
   username?: string | null
+  phone?: string | null
+  phone_number?: string | null
+  email?: string | null
+  full_name?: string | null
+  mac_address?: string | null
+  customer_id?: number | null
+  customer_name?: string | null
   location?: string | null
+  session_id?: string | null
+  started_at?: string | null
   session_start?: string | null
+  ended_at?: string | null
   session_end?: string | null
+  expires_at?: string | null
+  vyos_instance_id?: number | null
+  router_name?: string | null
+  status?: CorrelationStatus | string | null
+}
+
+export interface SubscriberIdentityProfile {
+  user_id: number
+  username: string
+  phone: string
+  email?: string | null
+  full_name: string
+  customer_id?: number | null
+  customer_name?: string | null
+  vyos_instance_id?: number | null
+  router_name?: string | null
+  status: string
+  created_at?: string | null
+  last_login?: string | null
+  total_sessions: number
+  active_sessions: number
+  last_seen_ip?: string | null
+  last_seen_mac?: string | null
+  last_seen_time?: string | null
+}
+
+export interface HistoricalSessionRecord {
+  session_id: string
+  user_id: number
+  username: string
+  phone: string
+  customer_name?: string | null
+  ip_address: string
+  mac_address: string
+  started_at: string
+  expires_at: string
+  ended_at?: string | null
+  last_activity?: string | null
+  vyos_instance_id?: number | null
+  router_name?: string | null
+  router_ip?: string | null
+  bytes_in: number
+  bytes_out: number
+  packets_in: number
+  packets_out: number
+  terminate_cause?: number | null
+  login_method?: string | null
+  is_active: boolean
+}
+
+export interface SubscriberSearchQuery {
+  query?: string
+  username?: string
+  phone?: string
+  email?: string
+  mac_address?: string
+  session_id?: string
+  ip_address?: string
+  user_id?: number
+  customer_id?: number
+  customer_name?: string
+  vyos_instance_id?: number
+  page?: number
+  page_size?: number
+}
+
+export interface SubscriberSearchResponse {
+  items: SubscriberIdentityProfile[]
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+  has_next: boolean
+  has_prev: boolean
+}
+
+export interface SubscriberSessionsResponse {
+  user_id: number
+  username: string
+  phone: string
+  customer_name?: string | null
+  items: HistoricalSessionRecord[]
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+  has_next: boolean
+  has_prev: boolean
 }
 
 export interface NATFlowRecord {
@@ -1143,6 +1249,7 @@ export interface SubscriberLookupParams {
   source_ip: string
   time_from: string
   time_to: string
+  vyos_instance_id?: number
   page?: number
   page_size?: number
 }
@@ -1164,6 +1271,7 @@ export interface ReverseNATLookupParams {
   nat_port: number
   timestamp: string
   time_tolerance_seconds?: number
+  vyos_instance_id?: number
 }
 
 export interface ReverseNATResponse {

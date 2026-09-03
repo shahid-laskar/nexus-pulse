@@ -24,6 +24,8 @@ import {
   Radio,
   Building2,
   FileSpreadsheet,
+  Briefcase,
+  BookmarkPlus,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -32,11 +34,14 @@ import { Badge } from '@/components/ui/Badge'
 import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
 import { ipdrApi } from '@/api/ipdr'
 import { extractErrorMessage } from '@/lib/axios'
+import { CaseManagementTab } from '@/pages/admin/CaseManagementTab'
+import { AttachToCaseModal } from '@/pages/admin/AttachToCaseModal'
 import type {
   NATFlowRecord,
   SubscriberIdentityProfile,
   HistoricalSessionRecord,
   CorrelationStatus,
+  CaseQueryType,
 } from '@/types'
 
 // Helper to format ISO strings for datetime-local inputs
@@ -94,7 +99,75 @@ function renderCorrelationStatusBadge(status?: CorrelationStatus | string | null
 }
 
 export function IPDRCompliancePage() {
-  const [activeTab, setActiveTab] = useState<'subscriber_search' | 'subscriber_trace' | 'reverse_nat'>('subscriber_search')
+  const [activeTab, setActiveTab] = useState<'cases' | 'subscriber_search' | 'subscriber_trace' | 'reverse_nat'>('subscriber_search')
+
+  // ── Case Attachment & Reproduce State (Task 5.6) ───────────────────────
+  const [attachModalState, setAttachModalState] = useState<{
+    isOpen: boolean
+    queryType: CaseQueryType
+    parameters: Record<string, unknown>
+    resultCount: number
+  }>({
+    isOpen: false,
+    queryType: 'REVERSE_NAT',
+    parameters: {},
+    resultCount: 0,
+  })
+
+  const handleOpenAttachModal = (
+    queryType: CaseQueryType,
+    parameters: Record<string, unknown>,
+    resultCount: number,
+  ) => {
+    setAttachModalState({
+      isOpen: true,
+      queryType,
+      parameters,
+      resultCount,
+    })
+  }
+
+  const handleReproduceQuery = (queryType: CaseQueryType, parameters: Record<string, unknown>) => {
+    if (queryType === 'REVERSE_NAT') {
+      setActiveTab('reverse_nat')
+      if (parameters.public_ip) setRevPublicIp(String(parameters.public_ip))
+      if (parameters.nat_port) setRevNatPort(String(parameters.nat_port))
+      if (parameters.timestamp) {
+        try {
+          setRevTimestamp(toDateTimeLocalString(new Date(String(parameters.timestamp))))
+        } catch {
+          setRevTimestamp(String(parameters.timestamp))
+        }
+      }
+      if (parameters.time_tolerance_seconds !== undefined) {
+        setRevTolerance(String(parameters.time_tolerance_seconds))
+      }
+      toast.success('Loaded LEA Reverse NAT parameters from investigation case')
+    } else if (queryType === 'SUBSCRIBER_TRACE') {
+      setActiveTab('subscriber_trace')
+      if (parameters.source_ip) setSubSourceIp(String(parameters.source_ip))
+      if (parameters.time_from) {
+        try {
+          setSubTimeFrom(toDateTimeLocalString(new Date(String(parameters.time_from))))
+        } catch {
+          setSubTimeFrom(String(parameters.time_from))
+        }
+      }
+      if (parameters.time_to) {
+        try {
+          setSubTimeTo(toDateTimeLocalString(new Date(String(parameters.time_to))))
+        } catch {
+          setSubTimeTo(String(parameters.time_to))
+        }
+      }
+      toast.success('Loaded Subscriber Trace parameters from investigation case')
+    } else if (queryType === 'CUSTOMER_SEARCH') {
+      setActiveTab('subscriber_search')
+      if (parameters.query_term) setSearchQueryText(String(parameters.query_term))
+      if (parameters.mode) setSearchField(String(parameters.mode))
+      toast.success('Loaded Subscriber Search parameters from investigation case')
+    }
+  }
 
   // ── Tab 1: Subscriber Search State (Task 5.5) ──────────────────────────
   const [searchField, setSearchField] = useState<string>('all')
@@ -415,6 +488,22 @@ export function IPDRCompliancePage() {
             <ShieldAlert className="h-4 w-4" />
             <span>Law Enforcement Reverse NAT Trace (LEA)</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('cases')}
+            className={`py-3 px-1 border-b-2 font-medium text-sm inline-flex items-center space-x-2 transition-colors ${
+              activeTab === 'cases'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400'
+            }`}
+          >
+            <Briefcase className="h-4 w-4" />
+            <span>LEA Investigation Cases</span>
+            <span className="ml-1.5 px-2 py-0.5 text-xs bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 rounded-full font-semibold">
+              Task 5.6
+            </span>
+          </button>
         </nav>
       </div>
 
@@ -493,11 +582,30 @@ export function IPDRCompliancePage() {
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Matching Subscribers ({subscriberSearchQuery.data?.total ?? 0})
                 </h3>
-                {subscriberSearchQuery.isFetching && (
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <RefreshCw className="h-3 w-3 animate-spin" /> Searching captive database...
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  {subscriberSearchQuery.isFetching && (
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <RefreshCw className="h-3 w-3 animate-spin" /> Searching captive database...
+                    </span>
+                  )}
+                  {subscriberSearchQuery.data && subscriberSearchQuery.data.items.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        handleOpenAttachModal(
+                          'CUSTOMER_SEARCH',
+                          { query_term: searchQueryText, mode: searchField },
+                          subscriberSearchQuery.data?.total ?? 0,
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 text-xs py-1 px-2.5"
+                    >
+                      <BookmarkPlus className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                      <span>Attach Search to LEA Case</span>
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {subscriberSearchQuery.data && subscriberSearchQuery.data.items.length > 0 ? (
@@ -962,16 +1070,40 @@ export function IPDRCompliancePage() {
                   </h3>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => handleExportCsv(activeSubQuery.source_ip, activeSubQuery.time_from, activeSubQuery.time_to)}
-                  disabled={isExporting || !subscriberTraceQuery.data?.total}
-                  className="inline-flex items-center gap-1.5"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Export Full CSV</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  {subscriberTraceQuery.data && subscriberTraceQuery.data.total > 0 && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        handleOpenAttachModal(
+                          'SUBSCRIBER_TRACE',
+                          {
+                            source_ip: activeSubQuery.source_ip,
+                            time_from: activeSubQuery.time_from,
+                            time_to: activeSubQuery.time_to,
+                          },
+                          subscriberTraceQuery.data?.total ?? 0,
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 text-xs"
+                    >
+                      <BookmarkPlus className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                      <span>Attach to LEA Case</span>
+                    </Button>
+                  )}
+
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleExportCsv(activeSubQuery.source_ip, activeSubQuery.time_from, activeSubQuery.time_to)}
+                    disabled={isExporting || !subscriberTraceQuery.data?.total}
+                    className="inline-flex items-center gap-1.5 text-xs"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Export Full CSV</span>
+                  </Button>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -1109,13 +1241,38 @@ export function IPDRCompliancePage() {
           {/* Reverse NAT Results */}
           {activeRevQuery && (
             <Card className="p-6">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <span>LEA Trace Results for {activeRevQuery.public_ip}:{activeRevQuery.nat_port}</span>
-                <Badge
-                  label={`${reverseNatQuery.data?.total_matches ?? 0} Matching Incidents`}
-                  variant={reverseNatQuery.data?.total_matches ? 'success' : 'default'}
-                />
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span>LEA Trace Results for {activeRevQuery.public_ip}:{activeRevQuery.nat_port}</span>
+                  <Badge
+                    label={`${reverseNatQuery.data?.total_matches ?? 0} Matching Incidents`}
+                    variant={reverseNatQuery.data?.total_matches ? 'success' : 'default'}
+                  />
+                </h3>
+
+                {reverseNatQuery.data && reverseNatQuery.data.matches.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      handleOpenAttachModal(
+                        'REVERSE_NAT',
+                        {
+                          public_ip: activeRevQuery.public_ip,
+                          nat_port: activeRevQuery.nat_port,
+                          timestamp: activeRevQuery.timestamp,
+                          time_tolerance_seconds: activeRevQuery.time_tolerance_seconds,
+                        },
+                        reverseNatQuery.data?.total_matches ?? 0,
+                      )
+                    }
+                    className="inline-flex items-center gap-1.5 text-xs"
+                  >
+                    <BookmarkPlus className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>Attach to LEA Case</span>
+                  </Button>
+                )}
+              </div>
 
               <div className="overflow-x-auto">
                 <Table>
@@ -1166,6 +1323,22 @@ export function IPDRCompliancePage() {
           )}
         </div>
       )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* TAB 4: LEA INVESTIGATION CASES (Task 5.6)                           */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activeTab === 'cases' && (
+        <CaseManagementTab onReproduceQuery={handleReproduceQuery} />
+      )}
+
+      {/* ── ATTACH TO CASE MODAL (Task 5.6) ──────────────────────────────── */}
+      <AttachToCaseModal
+        isOpen={attachModalState.isOpen}
+        onClose={() => setAttachModalState((prev) => ({ ...prev, isOpen: false }))}
+        queryType={attachModalState.queryType}
+        parameters={attachModalState.parameters}
+        resultCount={attachModalState.resultCount}
+      />
 
       {/* ─────────────────────────────────────────────────────────────────── */}
       {/* EVENT INSPECTOR MODAL                                               */}

@@ -1,6 +1,14 @@
 import { api } from '@/lib/axios'
 import type {
+  CaseFilterParams,
   HistoricalSessionRecord,
+  IPDRCaseCreate,
+  IPDRCaseListResponse,
+  IPDRCaseQueryCreate,
+  IPDRCaseQueryRead,
+  IPDRCaseRead,
+  IPDRCaseStatusUpdate,
+  IPDRCaseUpdate,
   IPDRExportParams,
   PaginatedIPDRResponse,
   ReverseNATLookupParams,
@@ -152,4 +160,72 @@ export const ipdrApi = {
     })
     return res.data
   },
+
+  // ── LEA Case Management (Task 5.6) ──────────────────────────────────────────
+
+  /**
+   * Create a new LEA investigation case.
+   */
+  createCase: async (payload: IPDRCaseCreate): Promise<IPDRCaseRead> => {
+    const res = await api.post<IPDRCaseRead>('/admin/ipdr/cases/', payload)
+    return res.data
+  },
+
+  /**
+   * List investigation cases with filtering and pagination.
+   */
+  listCases: async (params?: CaseFilterParams): Promise<IPDRCaseListResponse> => {
+    const res = await api.get<IPDRCaseListResponse>('/admin/ipdr/cases/', {
+      params: {
+        status: params?.status,
+        priority: params?.priority,
+        agency: params?.agency,
+        search: params?.search,
+        page: params?.page ?? 1,
+        page_size: params?.page_size ?? 20,
+      },
+    })
+    return res.data
+  },
+
+  /**
+   * Retrieve case details by ID.
+   */
+  getCase: async (caseId: number): Promise<IPDRCaseRead> => {
+    const res = await api.get<IPDRCaseRead>(`/admin/ipdr/cases/${caseId}/`)
+    return res.data
+  },
+
+  /**
+   * Update case metadata.
+   */
+  updateCase: async (caseId: number, payload: IPDRCaseUpdate): Promise<IPDRCaseRead> => {
+    const res = await api.patch<IPDRCaseRead>(`/admin/ipdr/cases/${caseId}/`, payload)
+    return res.data
+  },
+
+  /**
+   * Update case lifecycle status (OPEN -> INVESTIGATING -> REPORT_READY -> CLOSED).
+   */
+  updateCaseStatus: async (caseId: number, payload: IPDRCaseStatusUpdate): Promise<IPDRCaseRead> => {
+    const res = await api.patch<IPDRCaseRead>(`/admin/ipdr/cases/${caseId}/status/`, payload)
+    return res.data
+  },
+
+  /**
+   * Attach an executed investigation query to a case.
+   */
+  attachCaseQuery: async (caseId: number, payload: IPDRCaseQueryCreate): Promise<IPDRCaseQueryRead> => {
+    const res = await api.post<IPDRCaseQueryRead>(`/admin/ipdr/cases/${caseId}/queries/`, payload)
+    return res.data
+  },
+
+  /**
+   * List all queries attached to an investigation case.
+   */
+  listCaseQueries: async (caseId: number): Promise<IPDRCaseQueryRead[]> => {
+    const res = await api.get<IPDRCaseQueryRead[]>(`/admin/ipdr/cases/${caseId}/queries/`)
+    return res.data
+  },
 }
+

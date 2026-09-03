@@ -1316,3 +1316,104 @@ export interface IPDRExportParams {
   limit?: number
 }
 
+
+// ── LEA Case Management Types (Task 5.6) ──────────────────────────────────────
+
+export type CaseStatus = 'OPEN' | 'INVESTIGATING' | 'REPORT_READY' | 'CLOSED' | 'ARCHIVED'
+export type CasePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+export type CaseQueryType = 'REVERSE_NAT' | 'SUBSCRIBER_TRACE' | 'CUSTOMER_SEARCH' | 'SESSION_FLOWS'
+export type CaseQueryStatus = 'PENDING' | 'COMPLETED' | 'FAILED'
+
+export interface IPDRCaseCreate {
+  case_number?: string
+  external_reference?: string
+  title: string
+  description?: string
+  requesting_agency: string
+  requester_name: string
+  requester_contact: string
+  legal_reference: string
+  priority?: CasePriority
+}
+
+export interface IPDRCaseUpdate {
+  title?: string
+  description?: string
+  external_reference?: string
+  priority?: CasePriority
+  legal_reference?: string
+  requester_name?: string
+  requester_contact?: string
+  requesting_agency?: string
+}
+
+export interface IPDRCaseStatusUpdate {
+  status: CaseStatus
+  closure_notes?: string
+}
+
+export interface IPDRCaseQueryCreate {
+  query_type: CaseQueryType
+  query_parameters: Record<string, unknown>
+  result_count?: number
+  status?: CaseQueryStatus
+  notes?: string
+}
+
+export interface IPDRCaseQueryRead {
+  id: number
+  case_id: number
+  query_type: CaseQueryType
+  query_parameters_hash: string
+  query_parameters_redacted: Record<string, unknown>
+  requested_by: number
+  requested_by_username?: string | null
+  requested_at: string
+  completed_at?: string | null
+  result_count: number
+  status: CaseQueryStatus
+  notes?: string | null
+}
+
+export interface IPDRCaseRead {
+  id: number
+  case_number: string
+  external_reference?: string | null
+  title: string
+  description?: string | null
+  requesting_agency: string
+  requester_name: string
+  requester_contact: string
+  legal_reference: string
+  created_by: number
+  created_by_username?: string | null
+  created_at: string
+  status: CaseStatus
+  priority: CasePriority
+  closed_at?: string | null
+  closed_by?: number | null
+  closed_by_username?: string | null
+  closure_notes?: string | null
+  query_count: number
+  queries: IPDRCaseQueryRead[]
+}
+
+export interface IPDRCaseListResponse {
+  items: IPDRCaseRead[]
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+  has_next: boolean
+  has_prev: boolean
+}
+
+export interface CaseFilterParams {
+  status?: CaseStatus
+  priority?: CasePriority
+  agency?: string
+  search?: string
+  page?: number
+  page_size?: number
+}
+

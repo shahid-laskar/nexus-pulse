@@ -59,4 +59,36 @@ describe('IPDRCompliancePage Component (Task 5.5)', () => {
     fireEvent.click(screen.getByText('Subscriber / Account Search'))
     expect(screen.getByText('Find Subscribers')).toBeInTheDocument()
   })
+
+  it('renders LEA Investigation Cases tab and allows switching to case management (Task 5.6)', () => {
+    const qc = createTestQueryClient()
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <IPDRCompliancePage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+
+    // Verify Tab 4 is rendered
+    const casesTab = screen.getByText('LEA Investigation Cases')
+    expect(casesTab).toBeInTheDocument()
+
+    // Switch to cases tab
+    fireEvent.click(casesTab)
+
+    // Verify Case Management Dashboard is displayed
+    expect(screen.getByText('Law Enforcement & Regulatory Investigation Cases')).toBeInTheDocument()
+    expect(screen.getByText('New Investigation Case')).toBeInTheDocument()
+    expect(screen.getByText('Active & Historic Investigation Files')).toBeInTheDocument()
+
+    // Open New Investigation Case modal
+    fireEvent.click(screen.getByText('New Investigation Case'))
+    expect(screen.getByText('Create New Investigation Case')).toBeInTheDocument()
+    expect(screen.getByText('Case Title *')).toBeInTheDocument()
+    expect(screen.getByText('Requesting Agency *')).toBeInTheDocument()
+    expect(screen.getByText('Investigating Officer Name *')).toBeInTheDocument()
+    expect(screen.getByText('Legal Reference / Section *')).toBeInTheDocument()
+  })
 })
+

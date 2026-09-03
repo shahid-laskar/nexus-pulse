@@ -102,6 +102,29 @@ export const ipdrApi = {
   },
 
   /**
+   * Get NAT flow events for a specific subscriber session window (Task 5.5 drilldown).
+   */
+  getSubscriberSessionFlows: async (
+    userId: number,
+    sessionId: string,
+    options?: {
+      page?: number
+      page_size?: number
+    },
+  ): Promise<PaginatedIPDRResponse> => {
+    const res = await api.get<PaginatedIPDRResponse>(
+      `/admin/ipdr/subscribers/${userId}/sessions/${sessionId}/flows/`,
+      {
+        params: {
+          page: options?.page ?? 1,
+          page_size: options?.page_size ?? 100,
+        },
+      },
+    )
+    return res.data
+  },
+
+  /**
    * Generates direct download URL for IPDR CSV export.
    */
   exportCsvUrl: (params: IPDRExportParams): string => {

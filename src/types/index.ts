@@ -1227,6 +1227,30 @@ export interface SubscriberSessionsResponse {
   has_prev: boolean
 }
 
+export interface SubscriberCorrelationResult {
+  status: CorrelationStatus
+  user_id?: number | null
+  username?: string | null
+  customer_id?: number | null
+  customer_name?: string | null
+  mobile?: string | null
+  phone?: string | null
+  email?: string | null
+  full_name?: string | null
+  session_id?: string | null
+  mac_address?: string | null
+  ip_address?: string | null
+  location?: string | null
+  started_at?: string | null
+  ended_at?: string | null
+  expires_at?: string | null
+  vyos_instance_id?: number | null
+  router_name?: string | null
+  confidence_score?: string
+  spans_boundary?: boolean
+  candidate_count?: number
+}
+
 export interface NATFlowRecord {
   event_id: string
   flow_start: string
@@ -1242,6 +1266,7 @@ export interface NATFlowRecord {
   protocol_name?: string
   bytes_orig: number
   bytes_reply: number
+  correlation?: SubscriberCorrelationResult | null
   subscriber?: SubscriberInfo | null
 }
 

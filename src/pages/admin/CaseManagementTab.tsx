@@ -22,6 +22,7 @@ import {
   AlertCircle,
   Play,
   Filter,
+  FileDown,
 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -29,6 +30,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Table, Th, Td, EmptyRow } from '@/components/ui/Table'
 import { ipdrApi } from '@/api/ipdr'
 import { extractErrorMessage } from '@/lib/axios'
+import { GenerateReportModal } from './GenerateReportModal'
+import { ReportJobsDrawer } from './ReportJobsDrawer'
 import type {
   CaseFilterParams,
   CasePriority,
@@ -127,6 +130,10 @@ export function CaseManagementTab({ onReproduceQuery }: CaseManagementTabProps) 
     targetStatus: null,
     closureNotes: '',
   })
+
+  // DoT Report Generator & Jobs Drawer State
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false)
 
   // Fingerprint copy state
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
@@ -263,13 +270,24 @@ export function CaseManagementTab({ onReproduceQuery }: CaseManagementTabProps) 
               </p>
             </div>
 
-            <Button
-              onClick={() => setIsNewCaseModalOpen(true)}
-              className="inline-flex items-center gap-2 shrink-0"
-            >
-              <FolderPlus className="h-4 w-4" />
-              <span>New Investigation Case</span>
-            </Button>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <Button
+                variant="secondary"
+                onClick={() => setIsJobsDrawerOpen(true)}
+                className="inline-flex items-center gap-2"
+              >
+                <Clock className="h-4 w-4" />
+                <span>Export Jobs</span>
+              </Button>
+
+              <Button
+                onClick={() => setIsNewCaseModalOpen(true)}
+                className="inline-flex items-center gap-2"
+              >
+                <FolderPlus className="h-4 w-4" />
+                <span>New Investigation Case</span>
+              </Button>
+            </div>
           </div>
 
           {/* Search & Filter Bar */}
@@ -464,6 +482,16 @@ export function CaseManagementTab({ onReproduceQuery }: CaseManagementTabProps) 
             <div className="flex items-center gap-2">
               {caseDetailQuery.data && (
                 <>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setIsReportModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 border-teal-500/50 text-teal-600 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950/40"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    <span>Generate DoT Report</span>
+                  </Button>
+
                   {caseDetailQuery.data.status === 'OPEN' && (
                     <Button
                       size="sm"
@@ -927,6 +955,20 @@ export function CaseManagementTab({ onReproduceQuery }: CaseManagementTabProps) 
           </div>
         </div>
       )}
+
+      {/* DoT Regulatory Report Generator Modal */}
+      <GenerateReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        currentCase={caseDetailQuery.data}
+        onJobCreated={() => setIsJobsDrawerOpen(true)}
+      />
+
+      {/* Background Report Export Jobs Drawer */}
+      <ReportJobsDrawer
+        isOpen={isJobsDrawerOpen}
+        onClose={() => setIsJobsDrawerOpen(false)}
+      />
     </div>
   )
 }

@@ -26,6 +26,7 @@ import {
   FileSpreadsheet,
   Briefcase,
   BookmarkPlus,
+  FileDown,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -36,6 +37,8 @@ import { ipdrApi } from '@/api/ipdr'
 import { extractErrorMessage } from '@/lib/axios'
 import { CaseManagementTab } from '@/pages/admin/CaseManagementTab'
 import { AttachToCaseModal } from '@/pages/admin/AttachToCaseModal'
+import { GenerateReportModal } from '@/pages/admin/GenerateReportModal'
+import { ReportJobsDrawer } from '@/pages/admin/ReportJobsDrawer'
 import type {
   NATFlowRecord,
   SubscriberIdentityProfile,
@@ -124,6 +127,55 @@ export function IPDRCompliancePage() {
       queryType,
       parameters,
       resultCount,
+    })
+  }
+
+  // ── DoT Regulatory Report Generator & Jobs Drawer (Task 5.7) ───────────
+  const [reportModalState, setReportModalState] = useState<{
+    isOpen: boolean
+    queryType: CaseQueryType
+    sourceIp?: string
+    publicIp?: string
+    natPort?: number
+    userId?: number
+    sessionId?: string
+    timeFrom?: string
+    timeTo?: string
+    timeToleranceSeconds?: number
+    vyosInstanceId?: number
+  }>({
+    isOpen: false,
+    queryType: 'SUBSCRIBER_TRACE',
+  })
+
+  const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false)
+
+  const handleOpenReportModal = (
+    queryType: CaseQueryType,
+    params: {
+      source_ip?: string
+      public_ip?: string
+      nat_port?: number
+      user_id?: number
+      session_id?: string
+      time_from?: string
+      time_to?: string
+      time_tolerance_seconds?: number
+      vyos_instance_id?: number
+    },
+  ) => {
+    setReportModalState({
+      isOpen: true,
+      queryType,
+      sourceIp: params.source_ip,
+      publicIp: params.public_ip,
+      natPort: params.nat_port,
+      userId: params.user_id,
+      sessionId: params.session_id,
+      timeFrom: params.time_from ? new Date(params.time_from).toISOString() : undefined,
+      timeTo: params.time_to ? new Date(params.time_to).toISOString() : undefined,
+      timeToleranceSeconds: params.time_tolerance_seconds,
+      vyosInstanceId: params.vyos_instance_id,
     })
   }
 
@@ -445,8 +497,8 @@ export function IPDRCompliancePage() {
       />
 
       {/* ── Navigation Tabs ──────────────────────────────────────────────── */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-6">
+      <div className="border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <nav className="-mb-px flex space-x-6 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('subscriber_search')}
@@ -505,6 +557,18 @@ export function IPDRCompliancePage() {
             </span>
           </button>
         </nav>
+
+        <div className="pb-2 sm:pb-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsJobsDrawerOpen(true)}
+            className="inline-flex items-center gap-1.5 shrink-0 text-xs"
+          >
+            <Clock className="h-3.5 w-3.5 text-teal-500" />
+            <span>Export Jobs</span>
+          </Button>
+        </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────────── */}
@@ -848,6 +912,24 @@ export function IPDRCompliancePage() {
                         size="sm"
                         variant="secondary"
                         onClick={() =>
+                          handleOpenReportModal('SESSION_FLOWS', {
+                            user_id: selectedSubscriber?.user_id,
+                            session_id: selectedSessionForFlows.session_id,
+                            source_ip: selectedSessionForFlows.ip_address,
+                            time_from: selectedSessionForFlows.started_at,
+                            time_to: selectedSessionForFlows.ended_at || selectedSessionForFlows.expires_at,
+                          })
+                        }
+                        className="inline-flex items-center gap-1.5 border-teal-500/50 text-teal-600 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950/40"
+                      >
+                        <FileDown className="h-4 w-4" />
+                        <span>Generate DoT Report</span>
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
                           handleExportCsv(
                             selectedSessionForFlows.ip_address,
                             selectedSessionForFlows.started_at,
@@ -1072,25 +1154,43 @@ export function IPDRCompliancePage() {
 
                 <div className="flex items-center gap-2">
                   {subscriberTraceQuery.data && subscriberTraceQuery.data.total > 0 && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        handleOpenAttachModal(
-                          'SUBSCRIBER_TRACE',
-                          {
+                    <>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          handleOpenReportModal('SUBSCRIBER_TRACE', {
                             source_ip: activeSubQuery.source_ip,
                             time_from: activeSubQuery.time_from,
                             time_to: activeSubQuery.time_to,
-                          },
-                          subscriberTraceQuery.data?.total ?? 0,
-                        )
-                      }
-                      className="inline-flex items-center gap-1.5 text-xs"
-                    >
-                      <BookmarkPlus className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                      <span>Attach to LEA Case</span>
-                    </Button>
+                          })
+                        }
+                        className="inline-flex items-center gap-1.5 text-xs border-teal-500/50 text-teal-600 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950/40"
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                        <span>Generate DoT Report</span>
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          handleOpenAttachModal(
+                            'SUBSCRIBER_TRACE',
+                            {
+                              source_ip: activeSubQuery.source_ip,
+                              time_from: activeSubQuery.time_from,
+                              time_to: activeSubQuery.time_to,
+                            },
+                            subscriberTraceQuery.data?.total ?? 0,
+                          )
+                        }
+                        className="inline-flex items-center gap-1.5 text-xs"
+                      >
+                        <BookmarkPlus className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>Attach to LEA Case</span>
+                      </Button>
+                    </>
                   )}
 
                   <Button
@@ -1251,26 +1351,45 @@ export function IPDRCompliancePage() {
                 </h3>
 
                 {reverseNatQuery.data && reverseNatQuery.data.matches.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() =>
-                      handleOpenAttachModal(
-                        'REVERSE_NAT',
-                        {
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        handleOpenReportModal('REVERSE_NAT', {
                           public_ip: activeRevQuery.public_ip,
                           nat_port: activeRevQuery.nat_port,
-                          timestamp: activeRevQuery.timestamp,
+                          time_from: activeRevQuery.timestamp,
                           time_tolerance_seconds: activeRevQuery.time_tolerance_seconds,
-                        },
-                        reverseNatQuery.data?.total_matches ?? 0,
-                      )
-                    }
-                    className="inline-flex items-center gap-1.5 text-xs"
-                  >
-                    <BookmarkPlus className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>Attach to LEA Case</span>
-                  </Button>
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 text-xs border-teal-500/50 text-teal-600 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950/40"
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                      <span>Generate DoT Report</span>
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        handleOpenAttachModal(
+                          'REVERSE_NAT',
+                          {
+                            public_ip: activeRevQuery.public_ip,
+                            nat_port: activeRevQuery.nat_port,
+                            timestamp: activeRevQuery.timestamp,
+                            time_tolerance_seconds: activeRevQuery.time_tolerance_seconds,
+                          },
+                          reverseNatQuery.data?.total_matches ?? 0,
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 text-xs"
+                    >
+                      <BookmarkPlus className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                      <span>Attach to LEA Case</span>
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -1480,6 +1599,29 @@ export function IPDRCompliancePage() {
           </div>
         </div>
       )}
+
+      {/* ── DoT Regulatory Report Generator Modal (Task 5.7) ─────────────── */}
+      <GenerateReportModal
+        isOpen={reportModalState.isOpen}
+        onClose={() => setReportModalState((prev) => ({ ...prev, isOpen: false }))}
+        queryType={reportModalState.queryType}
+        sourceIp={reportModalState.sourceIp}
+        publicIp={reportModalState.publicIp}
+        natPort={reportModalState.natPort}
+        userId={reportModalState.userId}
+        sessionId={reportModalState.sessionId}
+        timeFrom={reportModalState.timeFrom}
+        timeTo={reportModalState.timeTo}
+        timeToleranceSeconds={reportModalState.timeToleranceSeconds}
+        vyosInstanceId={reportModalState.vyosInstanceId}
+        onJobCreated={() => setIsJobsDrawerOpen(true)}
+      />
+
+      {/* ── Background Report Export Jobs Drawer (Task 5.7) ──────────────── */}
+      <ReportJobsDrawer
+        isOpen={isJobsDrawerOpen}
+        onClose={() => setIsJobsDrawerOpen(false)}
+      />
     </div>
   )
 }

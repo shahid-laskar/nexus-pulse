@@ -10,6 +10,10 @@ import type {
   IPDRCaseStatusUpdate,
   IPDRCaseUpdate,
   IPDRExportParams,
+  IPDRReportExportParams,
+  IPDRReportJobCreate,
+  IPDRReportJobListResponse,
+  IPDRReportJobRead,
   PaginatedIPDRResponse,
   ReverseNATLookupParams,
   ReverseNATResponse,
@@ -227,5 +231,83 @@ export const ipdrApi = {
     const res = await api.get<IPDRCaseQueryRead[]>(`/admin/ipdr/cases/${caseId}/queries/`)
     return res.data
   },
+
+  // ── DoT-Oriented Report Generator (Task 5.7) ───────────────────────────
+
+  /**
+   * Generates and downloads a canonical DoT compliance report.
+   */
+  exportRegulatoryReport: async (
+    params: IPDRReportExportParams,
+  ): Promise<{ blob: Blob; filename: string; sha256: string; reportId: string }> => {
+    const res = await api.get('/admin/ipdr/reports/export', {
+      params,
+      responseType: 'blob',
+    })
+    const disposition = (res.headers['content-disposition'] as string) || ''
+    let filename = `DoT_IPDR_Report.${params.format.toLowerCase()}`
+    const match = disposition.match(/filename="?([^"]+)"?/)
+    if (match && match[1]) {
+      filename = match[1]
+    }
+    const sha256 = (res.headers['x-report-sha256'] as string) || ''
+    const reportId = (res.headers['x-report-id'] as string) || ''
+    return {
+      blob: res.data,
+      filename,
+      sha256,
+      reportId,
+    }
+  },
+
+  /**
+   * Enqueue an asynchronous export job.
+   */
+  createReportJob: async (payload: IPDRReportJobCreate): Promise<IPDRReportJobRead> => {
+    const res = await api.post<IPDRReportJobRead>('/admin/ipdr/reports/jobs/', payload)
+    return res.data
+  },
+
+  /**
+   * List recent report export jobs.
+   */
+  listReportJobs: async (limit?: number): Promise<IPDRReportJobListResponse> => {
+    const res = await api.get<IPDRReportJobListResponse>('/admin/ipdr/reports/jobs/', {
+      params: { limit: limit ?? 50 },
+    })
+    return res.data
+  },
+
+  /**
+   * Retrieve report job progress and metadata.
+   */
+  getReportJob: async (jobId: string): Promise<IPDRReportJobRead> => {
+    const res = await api.get<IPDRReportJobRead>(`/admin/ipdr/reports/jobs/${jobId}/`)
+    return res.data
+  },
+
+  /**
+   * Download a completed report artifact from a background job.
+   */
+  downloadReportJobArtifact: async (
+    jobId: string,
+  ): Promise<{ blob: Blob; filename: string; sha256: string }> => {
+    const res = await api.get(`/admin/ipdr/reports/jobs/${jobId}/download/`, {
+      responseType: 'blob',
+    })
+    const disposition = (res.headers['content-disposition'] as string) || ''
+    let filename = `DoT_Report_${jobId}.bin`
+    const match = disposition.match(/filename="?([^"]+)"?/)
+    if (match && match[1]) {
+      filename = match[1]
+    }
+    const sha256 = (res.headers['x-report-sha256'] as string) || ''
+    return {
+      blob: res.data,
+      filename,
+      sha256,
+    }
+  },
 }
+
 

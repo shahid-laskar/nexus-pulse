@@ -1417,3 +1417,58 @@ export interface CaseFilterParams {
   page_size?: number
 }
 
+// ── DoT-Oriented IPDR Report Generator (Task 5.7) ───────────────────────────
+
+export type ReportFormat = 'CSV' | 'XLSX' | 'PDF' | 'JSON' | 'ZIP'
+
+export type ReportJobStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+
+export interface IPDRReportExportParams {
+  case_id?: number
+  query_type?: CaseQueryType
+  source_ip?: string
+  public_ip?: string
+  nat_port?: number
+  user_id?: number
+  session_id?: string
+  time_from?: string
+  time_to?: string
+  time_tolerance_seconds?: number
+  format: ReportFormat
+  limit?: number
+}
+
+export interface IPDRReportJobCreate {
+  case_id?: number
+  query_type: CaseQueryType
+  format: ReportFormat
+  query_parameters: Record<string, unknown>
+}
+
+export interface IPDRReportJobRead {
+  id: string
+  case_id?: number | null
+  case_number?: string | null
+  requested_by: number
+  requested_by_username?: string | null
+  report_format: ReportFormat
+  query_type: string
+  query_parameters: Record<string, unknown>
+  status: ReportJobStatus
+  total_records: number
+  progress_pct: number
+  file_name?: string | null
+  file_size_bytes: number
+  sha256_checksum?: string | null
+  error_message?: string | null
+  created_at: string
+  completed_at?: string | null
+  download_url?: string | null
+}
+
+export interface IPDRReportJobListResponse {
+  items: IPDRReportJobRead[]
+  total: number
+}
+
+

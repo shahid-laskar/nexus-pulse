@@ -1,21 +1,19 @@
-import { clsx } from 'clsx'
+import { cn } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
 
 export function Spinner({ className }: { className?: string }) {
+  return <Loader2 className={cn('animate-spin h-5 w-5 text-muted-foreground', className)} />
+}
+
+export function PageLoader({ label = 'Loading' }: { label?: string }) {
   return (
-    <svg
-      className={clsx('animate-spin h-5 w-5 text-[#0a1628]', className)}
-      fill="none" viewBox="0 0 24 24"
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
+    <div className="flex flex-col items-center justify-center gap-3 h-64 text-muted-foreground">
+      <Spinner className="h-6 w-6 text-primary" />
+      <p className="text-[11.5px] uppercase tracking-[0.14em]">{label}</p>
+    </div>
   )
 }
 
-export function PageLoader() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <Spinner className="h-8 w-8" />
-    </div>
-  )
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse rounded-md bg-surface-2', className)} />
 }

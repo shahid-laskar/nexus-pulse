@@ -1,176 +1,197 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { clsx } from 'clsx'
 import { useAuthStore } from '@/store/auth'
+import { useUIStore } from '@/store/ui'
 import { authApi } from '@/api/auth'
 import toast from 'react-hot-toast'
-import { 
-  Zap, LayoutDashboard, Globe, Building, Users, User, UserPlus, 
-  Siren, Wifi, LineChart, Briefcase, ClipboardList, Settings, LogOut, UserCheck, Router,
-  ShieldCheck, ShieldAlert, Server, GitPullRequest, Activity, Layers
-} from 'lucide-react'
+import { ChevronsLeft, LogOut, Settings, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-interface NavItemProps {
-  to:    string
-  label: string
-  icon:  React.ElementType
-}
+import { NAV, type Capability, type NavLeaf } from './nav'
 
 export function Sidebar() {
-  const navigate   = useNavigate()
-  const auth       = useAuthStore()
-  const {
-    user, isSuper, scopeCircle, scopeBA,
-    canManageUsers, canManageCircles, canManageBAs,
-    canManageCustomers, canAccessNOC, canAccessEB,
-  } = auth
+  const navigate = useNavigate()
+  const auth = useAuthStore()
+  const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const { user, scopeCircle, scopeBA } = auth
+
+  const can = (key: Capability | Capability[]): boolean => {
+    const keys = Array.isArray(key) ? key : [key]
+    return keys.some((k) => (k === 'always' ? true : Boolean((auth as unknown as Record<string, boolean>)[k])))
+  }
 
   const handleLogout = async () => {
     await authApi.logout()
     auth.clearUser()
     navigate('/login', { replace: true })
-    toast.success('Logged out successfully')
+    toast.success('Signed out')
   }
 
   const initials = user
-    ? `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase() || user.username[0].toUpperCase()
+    ? `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`.toUpperCase() ||
+      user.username[0].toUpperCase()
     : '?'
 
+  const collapsed = sidebarCollapsed
+
   return (
-    <aside className="sticky top-0 h-screen shrink-0 w-60 flex flex-col border-r border-slate-200 bg-white transition-[width] duration-200 z-50">
+    <aside
+      className={cn(
+        'sticky top-0 z-50 flex h-screen shrink-0 flex-col border-r border-hairline bg-sidebar',
+        'transition-[width] duration-200 ease-standard',
+        collapsed ? 'w-14' : 'w-58'
+      )}
+    >
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-slate-200 px-4 shrink-0 bg-white">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary text-white shadow-2xs">
+      <div className={cn('flex h-14 shrink-0 items-center gap-2.5 border-b border-hairline px-3')}>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
           <Zap className="h-4 w-4" />
         </span>
-        <span className="text-[13px] font-bold tracking-tight text-slate-900">
-          BSNL <span className="font-normal text-slate-500">Pulse</span>
-        </span>
+        {!collapsed && (
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[12.5px] font-semibold tracking-tight text-sidebar-foreground">
+              BSNL <span className="font-normal text-muted-foreground">Pulse</span>
+            </p>
+          </div>
+        )}
+        {!collapsed && (
+          <button
+            onClick={toggleSidebar}
+            title="Collapse sidebar"
+            className="rounded-md p-1 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      {/* Scope badge */}
-      {(scopeCircle || scopeBA) && (
-        <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500 shrink-0 font-mono">
-          {scopeCircle && <span className="text-slate-800 font-semibold">{scopeCircle.name}</span>}
-          {scopeBA && <> / <span className="text-slate-800 font-semibold">{scopeBA.name}</span></>}
+      {/* Scope */}
+      {!collapsed && (scopeCircle || scopeBA) && (
+        <div className="border-b border-hairline px-3 py-2">
+          <p className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Operating scope
+          </p>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-foreground">
+            {scopeCircle?.name}
+            {scopeBA && <span className="text-muted-foreground"> / {scopeBA.name}</span>}
+          </p>
         </div>
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5" aria-label="Primary">
-
-        <NavSection label="Overview">
-          <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-        </NavSection>
-
-        {canManageCustomers && (
-          <NavSection label="Master Data">
-            {(canManageCircles || canManageBAs) && (
-              <NavItem to="/circles" icon={Globe} label="Circles & BAs" />
-            )}
-            {!canAccessEB && <NavItem to="/customers" icon={Users} label="Customers" />}
-            {isSuper && <NavItem to="/admin/router-approvals" icon={ShieldCheck} label="Router Approvals" />}
-            {isSuper && <NavItem to="/admin/ipdr" icon={ShieldAlert} label="IPDR Compliance" />}
-          </NavSection>
-        )}
-
-        {canManageUsers && (
-          <NavSection label="Users">
-            <NavItem to="/users"        icon={User} label="All Users" />
-            <NavItem to="/users/create" icon={UserPlus} label="Create User" />
-          </NavSection>
-        )}
-
-        {canAccessNOC && (
-          <NavSection label="NOC Operations">
-            <NavItem to="/noc/operations"       icon={Activity} label="Operations" />
-            <NavItem to="/noc/provisioning"     icon={Layers} label="Provisioning" />
-            <NavItem to="/noc/instances"        icon={Server} label="VyOS Instances" />
-            <NavItem to="/noc/router-proposals" icon={Router} label="Router Proposals" />
-            <NavItem to="/noc/change-requests"  icon={GitPullRequest} label="Change Requests" />
-            <NavItem to="/noc/alerts"           icon={Siren} label="Fault Monitoring" />
-            <NavItem to="/noc/registrations"    icon={UserCheck} label="Registrations" />
-            <NavItem to="/noc/sessions"         icon={Wifi} label="Sessions" />
-            <NavItem to="/noc/analytics"        icon={LineChart} label="Analytics & Logs" />
-          </NavSection>
-        )}
-
-        {canAccessEB && (
-          <NavSection label="EB Management">
-            <NavItem to="/eb"                 icon={Briefcase} label="EB Dashboard" />
-            <NavItem to="/eb/change-requests" icon={GitPullRequest} label="Change Requests" />
-            <NavItem to="/eb/customers"       icon={ClipboardList} label="EB Customers" />
-          </NavSection>
-        )}
-
-        <NavSection label="Account">
-          <NavItem to="/profile" icon={Settings} label="Profile Settings" />
-        </NavSection>
-
+      <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Primary">
+        {NAV.filter((g) => can(g.can)).map((group) => {
+          const items = group.items.filter((i) => can(i.can))
+          if (!items.length) return null
+          return (
+            <div key={group.label} className="mb-4 last:mb-0">
+              {!collapsed && (
+                <p className="px-2 pb-1 text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
+                  {group.label}
+                </p>
+              )}
+              {collapsed && <div className="mx-2 mb-2 h-px bg-hairline" />}
+              <ul className="space-y-0.5">
+                {items.map((item) => (
+                  <Item key={item.to} item={item} collapsed={collapsed} />
+                ))}
+              </ul>
+            </div>
+          )
+        })}
       </nav>
 
-      {/* User footer */}
-      <div className="p-3 shrink-0 border-t border-slate-200 bg-white">
-        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-100">
-          <NavLink to="/profile" className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-[11px] shrink-0 hover:opacity-90 shadow-2xs">
-            {initials}
-          </NavLink>
-          <div className="flex-1 min-w-0">
-            <NavLink to="/profile" className="text-slate-900 text-[12px] font-semibold truncate block hover:underline">
-              {user?.full_name || user?.username}
+      {/* Footer */}
+      <div className="shrink-0 border-t border-hairline p-2">
+        {collapsed ? (
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={toggleSidebar}
+              title="Expand sidebar"
+              className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-sidebar-accent"
+            >
+              <ChevronsLeft className="h-4 w-4 rotate-180" />
+            </button>
+            <NavLink
+              to="/profile"
+              className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground"
+            >
+              {initials}
             </NavLink>
-            <div className="text-slate-400 text-[9.5px] uppercase tracking-wider font-mono">
-              {user?.profile.role.name.replace(/_/g, ' ')}
-            </div>
+            <button
+              onClick={handleLogout}
+              title="Sign out"
+              className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-critical-soft hover:text-critical"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            title="Logout"
-            className="text-slate-400 hover:text-rose-600 transition-colors p-1.5 rounded-md hover:bg-white"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-hairline bg-surface-2/60 p-1.5">
+            <NavLink
+              to="/profile"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground"
+            >
+              {initials}
+            </NavLink>
+            <div className="min-w-0 flex-1">
+              <NavLink to="/profile" className="block truncate text-[12px] font-medium hover:underline">
+                {user?.full_name || user?.username}
+              </NavLink>
+              <p className="truncate font-mono text-[9.5px] uppercase tracking-wider text-muted-foreground">
+                {user?.profile.role.name.replace(/_/g, ' ')}
+              </p>
+            </div>
+            <NavLink
+              to="/settings"
+              title="Settings"
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-surface hover:text-foreground"
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </NavLink>
+            <button
+              onClick={handleLogout}
+              title="Sign out"
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-surface hover:text-critical"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   )
 }
 
-function NavSection({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-        {label}
-      </p>
-      <ul className="space-y-0.5">
-        {children}
-      </ul>
-    </div>
-  )
-}
-
-function NavItem({ to, icon: Icon, label }: NavItemProps) {
+function Item({ item, collapsed }: { item: NavLeaf; collapsed: boolean }) {
+  const { to, icon: Icon, label, badge } = item
   return (
     <li>
       <NavLink
         to={to}
         end={to === '/dashboard' || to === '/eb'}
+        title={collapsed ? label : undefined}
         className={({ isActive }) =>
           cn(
-            "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-all duration-100",
+            'group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[12.5px] font-medium transition-colors',
+            collapsed && 'justify-center px-0',
             isActive
-              ? "bg-blue-50 text-blue-700 font-semibold"
-              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              ? 'bg-sidebar-accent text-foreground'
+              : 'text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground'
           )
         }
       >
         {({ isActive }) => (
           <>
             {isActive && (
-              <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary" />
+              <span className="absolute left-0 top-1/2 h-4.5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
             )}
-            <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-600")} />
-            <span className="truncate">{label}</span>
+            <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
+            {!collapsed && <span className="truncate">{label}</span>}
+            {!collapsed && badge === 'live' && (
+              <span className="ml-auto flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-wider text-healthy">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-healthy" />
+                Live
+              </span>
+            )}
           </>
         )}
       </NavLink>
